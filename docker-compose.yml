@@ -1,0 +1,65 @@
+# ==============================================================================
+# Mellow Server - Docker Compose Specification
+# ==============================================================================
+
+name: mellow
+
+services:
+  mellow:
+    image: mellow:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mellow
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=6767
+      # Optional: Explicitly bind certificate SANs to your ZimaOS LAN IP or custom domain
+      # - HOST_IP=192.168.1.100
+      # - DOMAIN=mellow.local
+
+    # --------------------------------------------------------------------------
+    # Networking:
+    # Host mode is recommended for ZimaOS to allow:
+    # 1. Zero-configuration LAN UDP broadcast discovery (port 6768)
+    # 2. Low-latency peer-to-peer WebRTC voice/video mesh calling across your LAN
+    # --------------------------------------------------------------------------
+    network_mode: host
+
+    # If you prefer Docker bridge networking instead of host mode,
+    # comment 'network_mode: host' above and uncomment the ports below:
+    # ports:
+    #   - "6767:6767/tcp"
+    #   - "6768:6768/udp"
+
+    volumes:
+      # ZimaOS / CasaOS standard AppData directory (preserves SQLite DB, certs & uploads)
+      - /DATA/AppData/mellow/data:/app/data
+      # For generic Docker hosts or local folder mounting, you can use:
+      # - ./data:/app/data
+
+# ------------------------------------------------------------------------------
+# ZimaOS / CasaOS Dashboard Integration Metadata
+# Provides 1-click web launcher, icon, and description in ZimaOS App Store UI
+# ------------------------------------------------------------------------------
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+    - arm
+  main: mellow
+  title:
+    en_us: "Mellow"
+  tagline:
+    en_us: "Decentralized LAN Chat & WebRTC Calling"
+  description:
+    en_us: "Self-hosted, private Discord-style collaboration platform for home networks. Features text channels, voice/video calls, screen sharing with audio, and AI noise suppression with zero cloud dependencies."
+  developer: "Mellow"
+  author: "Mellow"
+  category: "Communication"
+  icon: "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/svg/discord.svg"
+  thumbnail: ""
+  port_map: "6767"
+  scheme: "https"
+  index: "/"

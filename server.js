@@ -10,8 +10,8 @@ const { Readable } = require('stream');
 
 const app = express();
 
-const PORT = 6767;
-const DATA_DIR = path.join(__dirname, 'data');
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 6767;
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const DB = require('./server/db.js');
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 const CERTS_DIR = path.join(DATA_DIR, 'certs');
@@ -39,6 +39,12 @@ function ensureCert() {
     { type: 7, ip: '127.0.0.1' },
     { type: 7, ip: '::1' }
   ];
+  if (process.env.HOST_IP) {
+    altNames.push({ type: 7, ip: process.env.HOST_IP });
+  }
+  if (process.env.DOMAIN) {
+    altNames.push({ type: 2, value: process.env.DOMAIN });
+  }
   try {
     const ifaces = os.networkInterfaces();
     for (const name in ifaces) {

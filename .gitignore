@@ -1,5 +1,6 @@
 # Local tooling / secrets
 data/
+.agents/
 skills-lock.json
 node_modules/
 screenshots/*
