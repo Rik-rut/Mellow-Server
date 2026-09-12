@@ -77,6 +77,49 @@ This is completely normal for private home servers.
 
 ---
 
+## Connecting Outside Your Home (For Friends and Family)
+
+If you want friends or family members who live elsewhere to chat and call on your server, you do not need to open router ports or pay for server hosting. You can use any of these free methods:
+
+### Method 1: Tailscale (Recommended for Phones, Tablets, and PCs)
+
+Tailscale creates a secure, private connection between your devices.
+
+1. Install the free **Tailscale** app on your server computer and on your family member's device (iPhone, Android, Windows, Mac, or Linux) from [tailscale.com](https://tailscale.com/).
+2. Log in with the same account (or use Tailscale Share to invite their account).
+3. Copy your server's Tailscale IP address (it looks like `100.x.y.z`).
+4. On their phone or computer, they open a browser and go to:
+   ```text
+   https://YOUR-TAILSCALE-IP:6767
+   ```
+5. They accept the security prompt once, and they are in.
+
+### Method 2: Radmin VPN (Best for Windows Gaming Groups)
+
+Radmin VPN connects Windows PCs together like a virtual local network.
+
+1. Download and install free **Radmin VPN** from [radmin-vpn.com](https://www.radmin-vpn.com/) on the server PC and on your friend's PC.
+2. On your server PC, click **Network -> Create network**, and set a network name and password.
+3. Your friends open Radmin VPN, click **Network -> Join network**, and enter that name and password.
+4. They copy your Radmin VPN IP address (it starts with `26.x.y.z`) and open:
+   ```text
+   https://YOUR-RADMIN-IP:6767
+   ```
+
+### Method 3: Cloudflare Tunnel (No App Required on Friend's Devices)
+
+Cloudflare Tunnel lets you create a real web link (like `https://chat.yourdomain.com`) so visitors can join directly without installing any VPN app.
+
+1. Set up a free **Cloudflare Tunnel** in your Cloudflare dashboard (under Zero Trust -> Networks -> Tunnels).
+2. Point the tunnel destination to your local server:
+   - Service: `HTTPS`
+   - URL: `localhost:6767`
+   - Additional Settings -> TLS: Enable **No TLS Verify** (so Cloudflare accepts Mellow's local certificate).
+3. Cloudflare gives you a secure public web link.
+4. Send that web link to your friends and family. Anyone can click it from any phone or computer and chat immediately with a green padlock.
+
+---
+
 ## What You Can Do with Mellow
 
 - **Text Chat and Channels**: Create discussion channels for different topics and send direct messages to friends.
