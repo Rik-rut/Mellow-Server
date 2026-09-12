@@ -59,7 +59,7 @@ x-casaos:
   developer: "Mellow"
   author: "Mellow"
   category: "Communication"
-  icon: "https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/svg/discord.svg"
+  icon: "https://raw.githubusercontent.com/Rik-rut/Mellow-Server/main/public/mellow.svg"
   thumbnail: ""
   port_map: "6767"
   scheme: "https"
