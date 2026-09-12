@@ -1,172 +1,121 @@
-# Mellow Server — Decentralized LAN Chat Application
+# Mellow Server
 
-Run your own private chat server on your home network (LAN) — **no internet required, no subscriptions, no cloud dependencies, and no data leaving your local network**.
+A private chat and voice calling server for your home network.
 
-**Mellow** is a self-hosted, Discord-style collaboration platform for family, friends, LAN parties, or office teams. It provides real-time text channels, direct messages, peer-to-peer voice and video calls, system audio screen sharing, file sharing, and rich media embeds — all hosted from a single computer and accessible via any web browser on your network.
-
-> **Tech Stack:** Node.js (v22.5+), Express, WebSockets (`ws`), WebRTC mesh, SQLite (`node:sqlite`), and vanilla web standards.
+Mellow lets you run your own private Discord-style communication server on your local Wi-Fi or home network. It requires no internet connection, no paid subscriptions, and no cloud accounts. All your messages, files, and calls stay inside your home.
 
 ---
 
-## Features
+## How to Run the Server
 
-- **Multi-Server & Categories** — Organize channels by server and categories (Text Channels, Voice Channels) with custom permissions.
-- **Text Channels & Direct Messages (DMs)** — Real-time messaging, unread notifications, message editing, replies, pins, and emoji reactions.
-- **Voice & Video Calls** — Low-latency peer-to-peer WebRTC mesh calls, camera grid, and in-call text chat.
-- **Screen Sharing with Audio** — High-definition screen sharing with optional tab/system audio capture and Picture-in-Picture (PiP) support.
-- **AI Noise Suppression** — Built-in client-side DSP options:
-  - **RNNoise** (fast, lightweight WebAssembly model)
-  - **DeepFilterNet3** (full-band 48 kHz deep-learning model with live strength tuning)
-  - Browser built-in audio processing
-- **File & Media Sharing** — Upload and share files up to 50 MB with inline previews for images, video, and audio.
-- **Rich Media Embeds** — Inline players for YouTube, YouTube Shorts, and TikTok with secure sandboxing.
-- **Security & Privacy**:
-  - Auto-generated self-signed HTTPS certificates (enables microphone, camera, and screen sharing APIs).
-  - PBKDF2-SHA512 password hashing with modern salt stretching.
-  - Secure session management with UUID tokens and sliding expiration.
-  - Rate limiting, CSP hardening, and upload file type allowlisting.
-  - Admin dashboard with two-step registration approvals (prevent unauthorized joins).
-- **Zero Configuration Discovery** — Answers local UDP broadcast discovery queries on port 6768 for instant client auto-detection.
+Choose the method for your system:
 
----
+### Option 1: Windows (Easiest)
 
-## Prerequisites
+1. Make sure you have Node.js installed (version 22.5 or newer from [nodejs.org](https://nodejs.org/)).
+2. Double-click the file named **`start.bat`**.
+3. A window will open, automatically install any needed files, and start your server.
+4. Keep that window open while you want the server to run.
 
-- **Node.js**: **v22.5.0 or higher** (required for native `node:sqlite` support).
-  - Verify with: `node --version`
-  - Download from: <https://nodejs.org> (Node 22 LTS or newer)
+### Option 2: Mac or Linux
 
----
-
-## Quick Start
-
-### 1. Launch the Server
-
-Open a terminal inside the `Mellow-Server` directory and run:
-
-```bash
-npm start
-```
-
-*(Alternatively: `node server.js`)*
-
-On startup, the console will display:
-
-```
-LAN discovery answering UDP broadcasts on :6768
-mellow-server running on https://0.0.0.0:6767
-```
-
-Leave this terminal window running while the server is in use. To stop the server, press `Ctrl + C`.
-
-### 2. Find Your LAN IP Address
-
-To allow other devices to connect, find the host computer's local IPv4 address:
-
-- **Windows**: Run `ipconfig` in Command Prompt or PowerShell (look for `IPv4 Address`, e.g., `192.168.1.5`).
-- **macOS / Linux**: Run `ip addr` or `ifconfig`.
-
-### 3. Access in Browser
-
-On any phone, tablet, or PC connected to the same Wi-Fi or office network, open:
-
-```
-https://<YOUR-IP>:6767
-```
-
-*(Example: `https://192.168.1.5:6767`)*
-
-#### Self-Signed Certificate Note:
-Because Mellow creates its own local SSL certificate (required by modern browsers for microphone and camera access), your browser will display a security warning on first visit:
-- **Chrome / Edge**: Click **Advanced** → **Proceed to `<ip>` (unsafe)**.
-- **Firefox**: Click **Advanced** → **Accept the Risk and Continue**.
-- **Safari / iOS**: Tap **Show Details** → **Visit this website**.
-
-### 4. Create the Admin / Owner Account
-
-1. Click **Register** and enter a username and password (minimum 8 characters).
-2. For the **first registered account**, look at the server console window: it will print an authorization line with a 6-digit confirmation code:
+1. Make sure you have Node.js installed (version 22.5 or newer from [nodejs.org](https://nodejs.org/)).
+2. Open your terminal in the Mellow-Server folder.
+3. Run this command:
+   ```bash
+   ./start.sh
    ```
-   [Mellow] "username" wants to register. Confirmation code: 123456
+   *(Or type `bash start.sh` and press Enter).*
+4. The script will automatically install any needed files and start your server.
+
+### Option 3: ZimaOS or CasaOS (Home Server)
+
+You can run Mellow on your ZimaOS or CasaOS home server using Docker:
+
+1. Copy or clone the Mellow-Server folder to your server.
+2. In your server terminal, navigate to the folder and run:
+   ```bash
+   sudo docker compose up -d --build
    ```
-3. Enter that 6-digit code on the registration screen and click **Confirm code**.
-4. This first account automatically becomes the **Server Owner / Admin**.
-5. Subsequent users who register will appear under **Admin Dashboard → Registration requests**, where admins can approve or deny requests in real time.
+3. The server will start in the background and stay running automatically, even after restarts.
 
 ---
 
-## Server Architecture & Files
+## How to Connect from Your Phone, Tablet, or PC
 
-This repository contains the standalone server and web client:
+Once the server is running, anyone connected to the same home Wi-Fi or network can use it.
 
+### 1. Find Your Server Computer IP Address
+- **On Windows**: Open Command Prompt, type `ipconfig`, and look for your IPv4 Address (for example: `192.168.1.5`).
+- **On Mac**: Open System Settings -> Wi-Fi -> Details, and find your IP address.
+- **On ZimaOS**: Use your ZimaOS web dashboard IP address.
+
+### 2. Open the App in Any Web Browser
+Open Chrome, Safari, Edge, or Firefox on any device and go to:
+```text
+https://YOUR-SERVER-IP:6767
 ```
-Mellow-Server/
-├── server.js          # Core HTTP/HTTPS, WebSocket signaling, and REST API server
-├── server/
-│   ├── db.js          # Synchronous SQLite database engine (node:sqlite, WAL mode)
-│   ├── discovery.js   # UDP broadcast discovery listener (port 6768)
-│   └── read-state.js  # Read receipt and unread message tracking
-├── public/            # Static frontend client (HTML, CSS, JS, sound effects, icons)
-├── package.json       # Node package configuration and npm start script
-├── package-lock.json  # Locked dependency tree
-├── .gitignore         # Ignores runtime data and node_modules
-└── README.md          # Server documentation
+*(Example: `https://192.168.1.5:6767`, or `https://localhost:6767` if you are on the same computer).*
+
+### 3. Accept the Browser Security Prompt (First Visit Only)
+Because Mellow creates its own secure private connection for your home network, your browser will show a warning saying the connection is not recognized:
+- **Chrome / Edge**: Click **Advanced**, then click **Proceed to (unsafe)**.
+- **Firefox**: Click **Advanced**, then click **Accept the Risk and Continue**.
+- **Safari / iPhone / iPad**: Tap **Show Details**, then tap **Visit this website**.
+
+This is completely normal for private home servers.
+
+### 4. Create the First Account (Server Owner)
+1. Click **Register** and choose a username and password.
+2. When you submit, look at your server window. It will print a 6-digit confirmation code:
+   ```text
+   [Mellow] "yourname" wants to register. Confirmation code: 123456
+   ```
+   *(If you are running on ZimaOS or Docker, type `sudo docker logs -f mellow` to see the code).*
+3. Type the 6-digit code into your browser and click **Confirm code**.
+4. You are now the Server Owner. Future family members or friends who register can be approved directly by you in the app under **Admin Dashboard**.
+
+---
+
+## What You Can Do with Mellow
+
+- **Text Chat and Channels**: Create discussion channels for different topics and send direct messages to friends.
+- **Voice and Video Calls**: Hop into voice channels with low lag, turn on your camera, or view multiple people on screen at once.
+- **Screen Sharing with Audio**: Share your screen or individual app windows with sound for watching videos together or playing games.
+- **Background Noise Removal**: Built-in audio filters clean up background noise from fans, keyboards, and pets.
+- **File and Photo Sharing**: Drag and drop pictures, videos, and files straight into the chat.
+- **Works Without Internet**: If your home internet goes down, your local chat and calls continue working as long as your Wi-Fi router is on.
+
+---
+
+## Keeping Your Data and Messages Safe
+
+All your settings, user accounts, uploaded pictures, and chat history are stored inside one single folder:
+```text
+data/
 ```
 
-### Runtime Data Directory (`data/`)
-
-On its first run, the server automatically creates a `data/` directory containing:
-- `data/mellow.db` — SQLite database containing users, servers, channels, messages, pins, and tokens (uses WAL journal mode for crash resistance).
-- `data/certs/` — Auto-generated self-signed SSL certificate (`cert.pem` and `key.pem`).
-- `data/uploads/` — Stored user file uploads and profile pictures.
+- **To Back Up Everything**: Simply make a copy of the `data/` folder and save it to a USB drive or cloud backup.
+- **To Move to ZimaOS**: Copy your existing `data/` files into `/DATA/AppData/mellow/data/` on your ZimaOS drive. All your previous conversations and accounts will automatically be there.
+- **To Start Fresh**: Stop the server, delete the `data/mellow.db` file, and start the server again.
 
 ---
 
-## Everyday Usage
+## Simple Troubleshooting
 
-- **Channels**: Switch between text and voice channels in the left sidebar. Server owners can create categories and channels.
-- **Voice & Video**: Click any voice channel to connect. Toggle microphone, camera, or screen sharing using the voice controls bar.
-- **Noise Suppression**: Open **Settings → Voice & Audio** to adjust microphone processing (RNNoise or DeepFilterNet3) and test audio input levels.
-- **Direct Messages**: Click the Home icon to view friends, direct conversations, and pending requests.
-- **Sharing Files**: Drag and drop files directly onto the chat window or click the attachment icon (up to 50 MB per file).
-
----
-
-## Connecting Over the Internet (Optional)
-
-To connect with friends or coworkers outside your local network without port forwarding or exposing ports to the public internet, use a private mesh VPN:
-
-1. Install **Tailscale** (<https://tailscale.com>), **NetBird** (<https://netbird.io>), or **Radmin VPN** on the server machine and client devices.
-2. Connect all devices to the same private mesh network.
-3. Open `https://<VPN-IP>:6767` in the browser using the server machine's assigned VPN IP.
-
----
-
-## Configuration & Administration
-
-### Resetting Admin or Database
-
-To wipe all data and start completely fresh:
-1. Stop the server (`Ctrl + C`).
-2. Delete the `data/mellow.db` file (or delete the entire `data/` folder).
-3. Start the server (`npm start`).
-4. Register the new account and approve it with the 6-digit code shown in the console.
-
-### Ports & Firewall
-
-- **TCP 6767**: Web application and WebSocket connections (HTTPS/WSS).
-- **UDP 6768**: LAN discovery responder (enables Mellow desktop clients to find the server automatically).
-
-If other computers cannot access the server, allow inbound TCP on port `6767` and UDP on port `6768` in your operating system's firewall (e.g., Windows Defender Firewall).
-
----
-
-## Troubleshooting
-
-| Issue | Solution |
+| Problem | Simple Solution |
 |---|---|
-| **`node:sqlite` or syntax error on startup** | Ensure you are running Node.js **v22.5.0 or higher** (`node --version`). |
-| **"Cannot find module" error** | Run `npm install` inside the `Mellow-Server` directory to restore dependencies. |
-| **Other devices cannot connect** | Verify both devices are on the same Wi-Fi/LAN network. Ensure Windows Firewall allows incoming connections on port `6767`. |
-| **Microphone or camera not working** | Ensure you are connecting via `https://` (not `http://`). Browsers require secure origins for media capture APIs. Accept the self-signed certificate warning. |
-| **Forgotten admin credentials** | Stop the server, delete `data/mellow.db`, restart, and register again to claim owner status with the console confirmation code. |
+| The web page will not load | Make sure your phone or laptop is on the same Wi-Fi network as the server computer. Double-check that you typed `https://` at the start of the address, not `http://`. |
+| Microphone or camera will not turn on | Browsers require a secure connection to use microphones and cameras. Make sure the address starts with `https://` and that you accepted the browser certificate prompt. |
+| Where do I find the 6-digit registration code? | Look at the black terminal window on the computer running the server. If using Docker, run `sudo docker logs -f mellow`. |
+| "Node.js version" error when starting | Mellow requires Node.js version 22.5 or newer. Download the current LTS version from [nodejs.org](https://nodejs.org/) and run the launcher again. |
+| Other computers cannot connect on Windows | Windows Firewall may be blocking the connection. Allow Node.js through Windows Defender Firewall, or allow port 6767. |
+
+---
+
+## Technical Details for Advanced Users
+
+- **Backend**: Node.js, Express, WebSockets (`ws`), native `node:sqlite` in WAL journal mode.
+- **Audio and Video**: WebRTC mesh peer-to-peer connections.
+- **Noise Suppression**: Client-side WebAssembly models (DeepFilterNet3 and RNNoise).
+- **Default Ports**: Port 6767 (HTTPS web client and WebSockets), Port 6768 (UDP local network auto-discovery).
