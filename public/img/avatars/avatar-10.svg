@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <rect width="128" height="128" rx="64" fill="#E91E63"/>
+  <g fill="#FFFFFF">
+    <!-- Heart -->
+    <path d="M64 96 C64 96 30 76 30 52 C30 38 42 28 54 32 C60 34 64 40 64 40 C64 40 68 34 74 32 C86 28 98 38 98 52 C98 76 64 96 64 96 Z"/>
+    <!-- Heart shine / sparkle -->
+    <circle cx="48" cy="46" r="4" fill="#FFFFFF"/>
+    <circle cx="44" cy="54" r="2" fill="#FFFFFF"/>
+    <polygon points="84,40 86,45 91,47 86,49 84,54 82,49 77,47 82,45" fill="#FEE75C"/>
+  </g>
+</svg>

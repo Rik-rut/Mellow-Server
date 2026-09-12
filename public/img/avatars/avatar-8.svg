@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <rect width="128" height="128" rx="64" fill="#9B59B6"/>
+  <!-- Faceted Diamond Crest -->
+  <g stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round">
+    <polygon points="40,46 88,46 102,64 64,104 26,64" fill="#8E44AD"/>
+    <!-- Top facets -->
+    <polygon points="40,46 54,64 74,64 88,46" fill="#A569BD"/>
+    <polygon points="40,46 26,64 54,64" fill="#BB8FCE"/>
+    <polygon points="88,46 102,64 74,64" fill="#A569BD"/>
+    <!-- Bottom facets -->
+    <polygon points="54,64 64,104 74,64" fill="#D7BDE2"/>
+    <polygon points="26,64 64,104 54,64" fill="#A569BD"/>
+    <polygon points="102,64 64,104 74,64" fill="#7D3C98"/>
+  </g>
+</svg>

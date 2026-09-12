@@ -1,0 +1,8 @@
+# Local tooling / secrets
+data/
+skills-lock.json
+node_modules/
+screenshots/*
+graphify-out/
+
+!README.md

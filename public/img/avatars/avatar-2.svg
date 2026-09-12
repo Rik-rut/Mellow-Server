@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <rect width="128" height="128" rx="64" fill="#23A55A"/>
+  <g fill="#FFFFFF">
+    <!-- Gamepad body -->
+    <path d="M34 44 C26 44 20 52 22 66 L26 90 C28 98 38 102 44 94 L56 78 L72 78 L84 94 C90 102 100 98 102 90 L106 66 C108 52 102 44 94 44 Z"/>
+    <!-- D-pad cutout -->
+    <path d="M38 58 L42 58 L42 54 L46 54 L46 58 L50 58 L50 62 L46 62 L46 66 L42 66 L42 62 L38 62 Z" fill="#23A55A"/>
+    <!-- Buttons -->
+    <circle cx="86" cy="56" r="3.5" fill="#23A55A"/>
+    <circle cx="92" cy="62" r="3.5" fill="#23A55A"/>
+    <circle cx="80" cy="62" r="3.5" fill="#23A55A"/>
+    <circle cx="86" cy="68" r="3.5" fill="#23A55A"/>
+    <!-- Center button -->
+    <circle cx="64" cy="60" r="3" fill="#23A55A"/>
+  </g>
+</svg>

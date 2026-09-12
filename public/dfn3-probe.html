@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<!-- Dev-only browser verification for the noise-suppression engines.
+
+     scripts/dfn3-bench.mjs already proved the DSP numbers on real fixtures. This
+     page proves what Node cannot:
+       1. the server's Content-Security-Policy allows the WebAssembly the engines
+          compile, in a real browser;
+       2. both AudioWorklet modules register and the processors really run inside
+          the audio graph;
+       3. strength 0 lets audio through and strength 100 suppresses it, i.e. the
+          slider is wired to the engine and not to a no-op;
+       4. the chain layer builds, coexists, and releases.
+
+     Rendering uses OfflineAudioContext so it is deterministic and does not need
+     a microphone. The live (real-time) pass is reported, not asserted: Chrome
+     only pulls render quanta when it owns an audio output device.
+
+     Run:  node scripts/browser-probe.mjs
+-->
+<html>
+<head><meta charset="utf-8"><title>noise-suppression probe</title></head>
+<body>
+<pre id="out" style="font:12px/1.5 monospace;white-space:pre-wrap"></pre>
+<script src="/js/rnnoise.js?v=1.2.4"></script>
+<script src="/js/noise-suppression.js?v=1.2.4"></script>
+<script>
+(async function () {
+  const P = window.__PROBE = { done: false, steps: {}, stats: {}, rms: {} };
+  window.onerror = (msg, src, line) => {
+    P.error = `uncaught: ${msg} @${src}:${line}`;
+    P.done = true;
+  };
+  window.addEventListener('unhandledrejection', ev => {
+    P.error = `unhandled rejection: ${(ev.reason && ev.reason.message) || ev.reason}`;
+    P.done = true;
+  });
+
+  const out = document.getElementById('out');
+  const log = (...a) => { out.textContent += a.join(' ') + '\n'; };
+  const mark = (phase, ok, detail, error) => {
+    P.steps[phase] = { ok: !!ok, detail: detail || '', error: error || '' };
+    log(`${ok ? 'PASS' : 'FAIL'} ${phase}${detail ? ' — ' + detail : ''}${error ? ' — ' + error : ''}`);
+  };
+  const phase = async (name, fn) => {
+    try { mark(name, true, await fn()); } catch (err) { mark(name, false, '', (err && err.message) || String(err)); }
+  };
+
+  const SR = 48000;
+  const SECONDS = 2;
+  const RNNOISE_WORKLET = '/js/rnnoise-worklet.js?v=1.2.4';
+  const DFN3_WORKLET = '/js/dfn3-worklet.js?v=1.2.4';
+
+  /* Speech-ish + noise, so a suppressor has something to keep and something to
+   * remove. Deterministic (no Math.random) so runs are comparable. */
+  function stimulus(ctx) {
+    const master = ctx.createGain();
+    master.gain.value = 0.5;
+    const glottal = ctx.createOscillator();
+    glottal.type = 'sawtooth';
+    glottal.frequency.value = 120;
+    const vib = ctx.createOscillator();
+    const vibDepth = ctx.createGain();
+    vib.frequency.value = 4.7;
+    vibDepth.gain.value = 22;
+    vib.connect(vibDepth).connect(glottal.frequency);
+    const f1 = ctx.createBiquadFilter();
+    f1.type = 'bandpass'; f1.frequency.value = 520; f1.Q.value = 6;
+    const f2 = ctx.createBiquadFilter();
+    f2.type = 'bandpass'; f2.frequency.value = 1400; f2.Q.value = 8;
+    const voiced = ctx.createGain(); voiced.gain.value = 0.7;
+    glottal.connect(f1); f1.connect(f2); f2.connect(voiced).connect(master);
+    // tremolo makes it look like syllables
+    const trem = ctx.createGain(); trem.gain.value = 1;
+    const tremLfo = ctx.createOscillator(); const tremDepth = ctx.createGain();
+    tremLfo.frequency.value = 3.1; tremDepth.gain.value = 0.5;
+    tremLfo.connect(tremDepth).connect(trem.gain);
+    voiced.disconnect(master); voiced.connect(trem).connect(master);
+    const frames = Math.floor(SECONDS * SR);
+    const noiseBuf = ctx.createBuffer(1, frames, SR);
+    const nd = noiseBuf.getChannelData(0);
+    let seed = 2024;
+    for (let i = 0; i < frames; i++) {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      nd[i] = ((seed / 0x7fffffff) * 2 - 1) * 0.3;
+    }
+    const hiss = ctx.createBufferSource(); hiss.buffer = noiseBuf;
+    const hissGain = ctx.createGain(); hissGain.gain.value = 0.35;
+    hiss.connect(hissGain).connect(master);
+    glottal.start(); vib.start(); tremLfo.start(); hiss.start();
+    return { master, stop: () => { for (const n of [glottal, vib, tremLfo, hiss]) { try { n.stop(); } catch (_) {} } } };
+  }
+
+  const rmsOf = ch => {
+    let s = 0;
+    for (let i = 0; i < ch.length; i++) {
+      const v = ch[i];
+      if (!Number.isFinite(v)) return NaN;
+      s += v * v;
+    }
+    return Math.sqrt(s / ch.length);
+  };
+
+  const fmt = v => (v >= 1e-3 || v === 0 ? v.toFixed(6) : v.toExponential(2));
+
+  /* Silence inserted by the worklet itself. A run of exact 0.0 samples longer
+   * than a couple of render quanta means the output ring went empty mid-stream,
+   * which is audible as chopping. Real audio at these levels never has it. */
+  function zeroGaps(ch) {
+    const half = Math.floor(ch.length / 2);
+    let runs = 0, longest = 0, cur = 0;
+    for (let i = half; i < ch.length; i++) {
+      if (ch[i] === 0) { cur++; continue; }
+      if (cur >= 16) { runs++; if (cur > longest) longest = cur; }
+      cur = 0;
+    }
+    if (cur >= 16) { runs++; if (cur > longest) longest = cur; }
+    return { runs, longest };
+  }
+
+  async function renderEngine(workletUrl, processorName, strength, extraOptions) {
+    const off = new OfflineAudioContext(1, Math.floor(SECONDS * SR), SR);
+    await off.audioWorklet.addModule(workletUrl);
+    const src = stimulus(off);
+    const options = Object.assign(
+      { numberOfInputs: 1, numberOfOutputs: 1, channelCount: 1 },
+      extraOptions || {}
+    );
+    // Both engines take strength through processorOptions, which is the way the
+    // app does it too: control-port messages are not a safe race against the
+    // first render quantum.
+    options.processorOptions = Object.assign({}, options.processorOptions, { strength });
+    const node = new AudioWorkletNode(off, processorName, options);
+    const messages = [];
+    node.port.onmessage = ev => messages.push(ev.data);
+    src.master.connect(node).connect(off.destination);
+    const buffer = await off.startRendering();
+    src.stop();
+    const ch = buffer.getChannelData(0);
+    return { rms: rmsOf(ch), gaps: zeroGaps(ch), messages };
+  }
+
+  const ratio = (a, b) => b > 0 ? +(a / b).toFixed(4) : NaN;
+
+  /* ---- environment / wiring --------------------------------------------- */
+
+  await phase('csp_allows_wasm_compile', async () => {
+    const res = await fetch('/js/lib/dfn3/df_bg.wasm');
+    if (!res.ok) throw new Error('wasm fetch ' + res.status);
+    const bytes = await res.arrayBuffer();
+    const mod = await WebAssembly.compile(bytes);
+    return `compiled ${(bytes.byteLength / 1048576).toFixed(1)} MB under page CSP (${WebAssembly.Module.exports(mod).length} exports)`;
+  });
+
+  await phase('assets_served', async () => {
+    const wasm = await fetch('/js/lib/dfn3/df_bg.wasm', { method: 'HEAD' });
+    const modelRes = await fetch('/js/lib/dfn3/DeepFilterNet3_onnx.tar.gz');
+    const model = new Uint8Array(await modelRes.arrayBuffer());
+    const worklet = await fetch(DFN3_WORKLET, { method: 'HEAD' });
+    const glue = await fetch('/js/lib/dfn3/df.js', { method: 'HEAD' });
+    if (model.byteLength < 100000) throw new Error('model truncated: ' + model.byteLength);
+    if (model[0] !== 0x1f || model[1] !== 0x8b) throw new Error('model is not gzip');
+    return `wasm ${wasm.status}, model ${(model.byteLength / 1048576).toFixed(1)} MB ${modelRes.status}, worklet ${worklet.status}, glue ${glue.status}`;
+  });
+
+  await phase('constraints_never_stack_suppressors', async () => {
+    const seen = NoiseSuppression.ENGINES.map(e => `${e.id}:${NoiseSuppression.audioConstraints(e.id).noiseSuppression}`).join(' ');
+    if (NoiseSuppression.audioConstraints('browser').noiseSuppression !== true) throw new Error('browser tier must enable WebRTC NS');
+    for (const id of ['off', 'rnnoise', 'dfn3']) {
+      if (NoiseSuppression.audioConstraints(id).noiseSuppression !== false) throw new Error(`${id} must disable WebRTC NS`);
+    }
+    return seen;
+  });
+
+  await phase('stimulus_reference_render', async () => {
+    const off = new OfflineAudioContext(1, Math.floor(SECONDS * SR), SR);
+    const src = stimulus(off);
+    src.master.connect(off.destination);
+    const buffer = await off.startRendering();
+    const rms = rmsOf(buffer.getChannelData(0));
+    src.stop();
+    if (!(rms > 1e-3)) throw new Error('stimulus itself is silent: ' + rms);
+    P.rms.reference = rms;
+    return `input rms=${rms}`;
+  });
+
+  /* ---- engines: 0 = passthrough, 100 = suppress -------------------------- */
+
+  const assets = (async () => {
+    const wasmModule = await WebAssembly.compile(await (await fetch('/js/lib/dfn3/df_bg.wasm')).arrayBuffer());
+    const modelBytes = new Uint8Array(await (await fetch('/js/lib/dfn3/DeepFilterNet3_onnx.tar.gz')).arrayBuffer());
+    return { wasmModule, modelBytes };
+  })();
+
+  let dfn3Opts = null;
+  await phase('dfn3_prepares_engine_in_worklet', async () => {
+    const a = await assets;
+    dfn3Opts = { processorOptions: { wasmModule: a.wasmModule, modelBytes: a.modelBytes } };
+    const r = await renderEngine(DFN3_WORKLET, 'dfn3-processor', 0, dfn3Opts);
+    const err = r.messages.find(m => m.type === 'error');
+    if (err) throw new Error('engine error in worklet: ' + err.message);
+    P.messages = { dfn3: r.messages.map(m => m.type) };
+    return `constructed and rendered, message types=${(P.messages.dfn3 || []).join(',') || 'none delivered offline'}`;
+  });
+
+  await phase('dfn3_strength_zero_passes_audio', async () => {
+    const r = await renderEngine(DFN3_WORKLET, 'dfn3-processor', 0, dfn3Opts);
+    P.rms.dfn3_zero = r.rms;
+    const rel = ratio(r.rms, P.rms.reference);
+    if (!(r.rms > 1e-6)) throw new Error(`engine output is silent at strength 0 (rms=${r.rms}) — audio thread or ring buffer broken`);
+    if (rel < 0.5 || rel > 1.6) throw new Error(`strength 0 should pass audio through, out/in=${rel}`);
+    P.gaps = P.gaps || {};
+    P.gaps.dfn3 = r.gaps;
+    return `out=${fmt(r.rms)} in=${fmt(P.rms.reference)} ratio=${rel}`;
+  });
+
+  await phase('dfn3_output_has_no_inserted_silence', async () => {
+    const g = (P.gaps || {}).dfn3 || { runs: -1 };
+    if (g.runs > 0) throw new Error(`${g.runs} silence run(s), longest ${g.longest} samples (${(g.longest / 48).toFixed(2)} ms) — output ring starving`);
+    if (g.runs < 0) throw new Error('no measurement taken');
+    return 'no silence runs >= 16 samples in the second half';
+  });
+
+  await phase('dfn3_strength_reduces_noise', async () => {
+    const soft = await renderEngine(DFN3_WORKLET, 'dfn3-processor', 5, dfn3Opts);
+    const hard = await renderEngine(DFN3_WORKLET, 'dfn3-processor', 100, dfn3Opts);
+    P.rms.dfn3_soft = soft.rms;
+    P.rms.dfn3_hard = hard.rms;
+    if (!(soft.rms > 1e-6)) throw new Error('strength 5 output collapsed to zero: ' + soft.rms);
+    const rel = ratio(hard.rms, P.rms.reference);
+    const relSoft = ratio(soft.rms, P.rms.reference);
+    if (!(rel < relSoft * 0.5)) throw new Error(`strength 100 did not suppress clearly more than strength 5 (${rel} vs ${relSoft})`);
+    return `out/in: strength5=${relSoft} strength100=${rel} (${fmt(soft.rms)} vs ${fmt(hard.rms)})`;
+  });
+
+  await phase('rnnoise_strength_zero_is_dry', async () => {
+    const r = await renderEngine(RNNOISE_WORKLET, 'rnnoise-processor', 0);
+    P.rms.rnnoise_zero = r.rms;
+    const rel = ratio(r.rms, P.rms.reference);
+    if (!(r.rms > 1e-6)) throw new Error(`rnnoise output silent at strength 0 (rms=${r.rms})`);
+    if (rel < 0.6 || rel > 1.5) throw new Error(`strength 0 should be dry passthrough, out/in=${rel}`);
+    P.gaps = P.gaps || {};
+    P.gaps.rnnoise = r.gaps;
+    return `out=${fmt(r.rms)} in=${fmt(P.rms.reference)} ratio=${rel}`;
+  });
+
+  await phase('rnnoise_output_has_no_inserted_silence', async () => {
+    const g = (P.gaps || {}).rnnoise || { runs: -1 };
+    if (g.runs > 0) throw new Error(`${g.runs} silence run(s), longest ${g.longest} samples (${(g.longest / 48).toFixed(2)} ms) — output ring starving`);
+    if (g.runs < 0) throw new Error('no measurement taken');
+    return 'no silence runs >= 16 samples in the second half';
+  });
+
+  await phase('rnnoise_strength_suppresses_noise', async () => {
+    const soft = await renderEngine(RNNOISE_WORKLET, 'rnnoise-processor', 15);
+    const hard = await renderEngine(RNNOISE_WORKLET, 'rnnoise-processor', 100);
+    P.rms.rnnoise_soft = soft.rms;
+    P.rms.rnnoise_hard = hard.rms;
+    const relHard = ratio(hard.rms, P.rms.reference);
+    const relSoft = ratio(soft.rms, P.rms.reference);
+    if (!(relHard < relSoft * 0.9)) throw new Error(`strength 100 did not suppress more than 15 (${relHard} vs ${relSoft})`);
+    return `out/in: strength15=${relSoft} strength100=${relHard} (${fmt(soft.rms)} vs ${fmt(hard.rms)})`;
+  });
+
+  /* ---- chain layer ------------------------------------------------------- */
+
+  await phase('chain_layer_builds_and_releases', async () => {
+    const live = new AudioContext({ sampleRate: SR });
+    if (live.state === 'suspended') await live.resume().catch(() => {});
+    const dest = live.createMediaStreamDestination();
+    const t = stimulus(live);
+    t.master.connect(dest);
+    const r1 = await NoiseSuppression.createDenoisedStream(dest.stream, 'dfn3');
+    if (r1.degraded) throw new Error('degraded to ' + r1.engine + ': ' + r1.reason);
+    if (NoiseSuppression.chainCount() !== 1) throw new Error('expected 1 chain, got ' + NoiseSuppression.chainCount());
+    if (!r1.stream || !r1.stream.getAudioTracks().length) throw new Error('chain produced no track');
+    NoiseSuppression.applyStrength(r1.chain.node, 'dfn3', 40);
+    const raw2 = live.createMediaStreamDestination();
+    const r2 = await NoiseSuppression.createDenoisedStream(raw2.stream, 'rnnoise');
+    if (NoiseSuppression.chainCount() !== 2) throw new Error('expected 2 concurrent chains, got ' + NoiseSuppression.chainCount());
+    r1.chain.stop();
+    r2.chain.stop();
+    if (NoiseSuppression.chainCount() !== 0) throw new Error('chains leaked: ' + NoiseSuppression.chainCount());
+    NoiseSuppression.dispose();
+    t.stop();
+    live.close().catch(() => {});
+    return `dfn3 build ${r1.buildMs} ms, rnnoise build ${r2.buildMs} ms, chains 1 -> 2 -> 0`;
+  });
+
+  await phase('warmup_and_persistence', async () => {
+    const ready = await NoiseSuppression.warmup('dfn3');
+    NoiseSuppression.setEngine('dfn3');
+    NoiseSuppression.setStrength('dfn3', 42);
+    const s = NoiseSuppression.getSettings();
+    if (s.engine !== 'dfn3') throw new Error('engine not persisted: ' + s.engine);
+    if (s.strength.dfn3 !== 42) throw new Error('strength not persisted: ' + s.strength.dfn3);
+    NoiseSuppression.setStrength('dfn3', 145);
+    if (NoiseSuppression.getSettings().strength.dfn3 !== 100) throw new Error('strength not clamped');
+    NoiseSuppression.setEngine('bogus');
+    if (NoiseSuppression.getSettings().engine !== 'dfn3') throw new Error('unknown engine overwrote a good setting');
+    NoiseSuppression.setEngine('rnnoise');
+    NoiseSuppression.setStrength('rnnoise', 100);
+    return `warmup=${ready}, persisted and clamped, bad engine id rejected`;
+  });
+
+  await phase('dispose_releases_tracks_and_a_new_chain_still_builds', async () => {
+    const live = new AudioContext({ sampleRate: SR });
+    if (live.state === 'suspended') await live.resume().catch(() => {});
+    const dest = live.createMediaStreamDestination();
+    const t = stimulus(live);
+    t.master.connect(dest);
+    const r1 = await NoiseSuppression.createDenoisedStream(dest.stream, 'dfn3');
+    const track = r1.chain.stream.getAudioTracks()[0];
+    const before = track.readyState;
+    NoiseSuppression.dispose();
+    const after = track.readyState;
+    // Measured: Chrome leaves the MediaStreamTrack reporting 'live' after the
+    // context closes, so a caller must never assume an old chain stopped carrying
+    // audio - which is why an engine change rebuilds and republishes instead of
+    // reusing. What matters here is that a fresh chain still builds afterwards.
+    const r2 = await NoiseSuppression.createDenoisedStream(dest.stream, 'dfn3');
+    if (r2.degraded) throw new Error('rebuild after dispose failed: ' + r2.reason);
+    r2.chain.stop();
+    NoiseSuppression.dispose();
+    t.stop();
+    live.close().catch(() => {});
+    if (before !== 'live') throw new Error('track was not live to begin with: ' + before);
+    return `track ${before} -> ${after} on dispose, rejoin rebuilt (${r2.active})`;
+  });
+
+  /* Report-only: real per-frame cost needs a device that pulls the graph. */
+  await phase('live_context_cost_report_only', async () => {
+    const live = new AudioContext({ sampleRate: SR });
+    if (live.state === 'suspended') await live.resume().catch(() => {});
+    const stateBefore = live.state;
+    const dest = live.createMediaStreamDestination();
+    const t = stimulus(live);
+    t.master.connect(dest);
+    const r = await NoiseSuppression.createDenoisedStream(dest.stream, 'dfn3');
+    const seen = [];
+    r.chain.node.port.onmessage = ev => { if (ev.data) seen.push(ev.data); };
+    await new Promise(res => setTimeout(res, 7000));
+    P.live = {
+      state: stateBefore,
+      baseLatency: live.baseLatency,
+      outputLatency: live.outputLatency ?? null,
+      stats: seen.find(m => m.type === 'stats') || null
+    };
+    r.chain.stop();
+    NoiseSuppression.dispose();
+    t.stop();
+    live.close().catch(() => {});
+    const s = P.live.stats;
+    if (!s) return `no stats in 7 s (ctx.state=${stateBefore}) — no audio output device, expected under automation`;
+    return `avg ${s.avgMs} ms/frame of ${s.budgetMs} ms budget, max ${s.maxMs} ms, drops ${s.drops}`;
+  });
+
+  P.done = true;
+  const failed = Object.entries(P.steps).filter(([, s]) => !s.ok).map(([k, s]) => `${k}: ${s.error}`);
+  P.error = failed.join(' | ');
+  log(failed.length ? `\n${failed.length} FAILURE(S)` : '\nALL PASS');
+  log('rms ' + JSON.stringify(P.rms));
+})();
+</script>
+</body>
+</html>

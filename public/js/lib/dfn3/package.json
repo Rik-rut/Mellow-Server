@@ -1,0 +1,5 @@
+{
+  "type": "module",
+  "private": true,
+  "description": "Marks the vendored DeepFilterNet3 wasm-bindgen glue (df.js) as an ES module for Node tooling. Browsers ignore this file."
+}

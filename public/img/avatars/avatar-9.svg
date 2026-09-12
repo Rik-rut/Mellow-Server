@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <rect width="128" height="128" rx="64" fill="#4E5D6C"/>
+  <g fill="#FFFFFF">
+    <!-- Headband -->
+    <path d="M64 26 C42 26 26 42 26 64 L34 64 C34 46 47 34 64 34 C81 34 94 46 94 64 L102 64 C102 42 86 26 64 26 Z"/>
+    <!-- Left ear cup -->
+    <rect x="22" y="60" width="16" height="32" rx="8"/>
+    <!-- Right ear cup -->
+    <rect x="90" y="60" width="16" height="32" rx="8"/>
+    <!-- Soundwaves in center -->
+    <rect x="48" y="70" width="4" height="12" rx="2" fill="#5865F2"/>
+    <rect x="56" y="62" width="4" height="28" rx="2" fill="#5865F2"/>
+    <rect x="64" y="56" width="4" height="40" rx="2" fill="#57F287"/>
+    <rect x="72" y="62" width="4" height="28" rx="2" fill="#5865F2"/>
+    <rect x="80" y="70" width="4" height="12" rx="2" fill="#5865F2"/>
+  </g>
+</svg>

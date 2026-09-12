@@ -1,0 +1,58 @@
+DeepFilterNet3 - vendored browser engine for noise suppression
+==============================================================
+
+Everything here is served from this origin at /js/lib/dfn3/. No third-party
+CDN is contacted at runtime.
+
+What the files are
+------------------
+df_bg.wasm                     Rust engine (DeepFilterNet3 inference + STFT/
+                               feature extraction, wasm-bindgen target web).
+                               16,418,651 bytes. Obtained from the Mezon build
+                               below; this is the only artifact with no
+                               independent second source, so it is pinned by
+                               hash and is not rebuilt here.
+DeepFilterNet3_onnx.tar.gz     Official model weights. Verified byte-identical
+                               to upstream Rikorose/DeepFilterNet (see hash).
+df.js                          wasm-bindgen glue (initSync, df_create,
+                               df_process_frame, df_set_atten_lim,
+                               df_set_post_filter_beta). Unmodified. Includes
+                               an AudioWorklet TextDecoder/TextEncoder
+                               polyfill authored upstream.
+package.json                   {"type":"module"} marker so Node tooling can
+                               import df.js as ESM. Browsers ignore it.
+LICENSE-MIT / LICENSE-APACHE   Upstream dual license (MIT OR Apache-2.0).
+
+Provenance
+----------
+engine glue + worklet reference   github.com/mezonai/mezon-noise-suppression
+                                  (npm: deepfilternet3-noise-filter; formerly
+                                  github.com/phuvinh010701/livekit-deepfilternet3-noise-filter)
+                                  commit a5212661245a2184370fc3c3dd1f52dc4dffb2a5
+                                  asset URLs:
+                                  https://cdn.mezon.ai/AI/models/datas/noise_suppression/deepfilternet3/v3/pkg/df_bg.wasm
+model + papers + reference impl   github.com/Rikorose/DeepFilterNet
+                                  commit 2f345e0104038171d488bcdc3b20668fb6d5c464
+                                  https://raw.githubusercontent.com/Rikorose/DeepFilterNet/main/models/DeepFilterNet3_onnx.tar.gz
+
+SHA-256
+-------
+440b5d12b6ea7d95008736f844221d7874ee15de5cb10d3015002470fdba0432  df_bg.wasm
+c94d91f70911001c946e0fabb4aa9adc37045f45a03b56008cb0c8244cb63616  DeepFilterNet3_onnx.tar.gz
+db53ee40f42143a0077905f73c6255b272a651f36f451fca6a2bde980c749f71  df.js
+c50e9ee0999923305c5cc8e8bddcb3f841adf3b1f9d55257f5f3a139c3501075  LICENSE-MIT
+5f907b170974f449d8426342af1168d84599de1b7682f8ec9d46a0816d930891  LICENSE-APACHE
+
+Licence
+-------
+DeepFilterNet, DeepFilterNet3 weights, libDF: MIT OR Apache-2.0.
+Mezon wasm build + glue: MIT OR Apache-2.0.
+Keep both license files next to these assets when copying this directory.
+Attribution: "Noise suppression by DeepFilterNet3 (Schröter et al., FAU /
+WS Audiology) and the mezonai/mezon-noise-suppression wasm build."
+
+Measured on this project (scripts/dfn3-bench.mjs, i5-12400, Node/V8 wasm):
+  frame 480 samples @ 48 kHz, median 0.32-0.56 ms per 10 ms frame
+  (RTF 0.03-0.06, ~4.5% of one core), 28.8 MB linear memory, no growth over
+  ~5,000 frames, model load ~0.46 s, wasm compile ~20 ms, algorithmic delay
+  30 ms, noise floor attenuation 19.7 dB (atten_lim 20) to 67.7 dB (100).

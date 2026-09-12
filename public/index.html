@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mellow</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="alternate icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/style.css?v=1.2.8">
+  <link rel="stylesheet" href="/vendor/phosphor/regular/style.css">
+  <link rel="stylesheet" href="/vendor/phosphor/fill/style.css">
+  <link rel="stylesheet" href="/vendor/phosphor/bold/style.css">
+  <style>
+    @font-face {
+      font-family: 'Geist';
+      src: url('/fonts/Geist-Regular.woff2') format('woff2');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Geist';
+      src: url('/fonts/Geist-Medium.woff2') format('woff2');
+      font-weight: 500;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Geist';
+      src: url('/fonts/Geist-SemiBold.woff2') format('woff2');
+      font-weight: 600;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Geist';
+      src: url('/fonts/Geist-Bold.woff2') format('woff2');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+  </style>
+</head>
+<body>
+  <div id="auth-screen">
+    <div class="auth-slideshow" aria-hidden="true">
+      <img class="auth-slide" style="--i:0" src="/img/auth-bg/voyager-4.jpg" alt="">
+      <img class="auth-slide" style="--i:1" src="/img/auth-bg/voyager-6.jpg" alt="" loading="lazy">
+      <img class="auth-slide" style="--i:2" src="/img/auth-bg/voyager-12.jpg" alt="" loading="lazy">
+      <img class="auth-slide" style="--i:3" src="/img/auth-bg/voyager-14.jpg" alt="" loading="lazy">
+      <img class="auth-slide" style="--i:4" src="/img/auth-bg/voyager-15.jpg" alt="" loading="lazy">
+      <img class="auth-slide" style="--i:5" src="/img/auth-bg/voyager-19.jpg" alt="" loading="lazy">
+      <div class="auth-scrim"></div>
+    </div>
+    <div class="auth-box">
+      <div class="auth-logo-wrap">
+        <img src="/mellow.svg" alt="Mellow" class="auth-logo">
+      </div>
+      <h1>Mellow</h1>
+      <p class="auth-subtitle">LAN Chat & Voice</p>
+      <div id="auth-tabs">
+        <button class="auth-tab active" data-tab="login">Login</button>
+        <button class="auth-tab" data-tab="register">Register</button>
+      </div>
+      <form id="auth-form">
+        <input type="text" id="auth-username" placeholder="Username" required autocomplete="off">
+        <input type="password" id="auth-password" placeholder="Password (min 8 chars for new accounts)" required>
+        <div id="auth-bootstrap" style="display:none">
+          <span class="bootstrap-label">Waiting for an admin to approve — or enter the code shown in the server console:</span>
+          <input type="text" id="auth-code" placeholder="6-digit code" maxlength="6" inputmode="numeric" autocomplete="off">
+          <button type="button" id="auth-code-confirm">Confirm code</button>
+        </div>
+        <div id="auth-error" class="error-message"></div>
+        <button type="submit" id="auth-submit">Login</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="app" style="display:none">
+    <nav id="nav-rail" class="nav-rail">
+      <button id="rail-dm-btn" class="rail-item active" title="Direct Messages">
+        <span class="rail-pill"></span>
+        <div class="rail-icon-wrap rail-logo-wrap">
+          <img src="/mellow.svg" alt="Mellow" class="rail-logo">
+        </div>
+      </button>
+      <div class="rail-separator"></div>
+      <div id="rail-servers-list" style="display:contents">
+        <button id="rail-server-btn" class="rail-item" title="Mellow Server" data-server-id="default-server">
+          <span class="rail-pill"></span>
+          <div class="rail-icon-wrap">
+            <i class="ph-bold ph-chats-circle"></i>
+          </div>
+        </button>
+      </div>
+      <button id="rail-add-btn" class="rail-item rail-action-item" title="Add a Server" style="display:none">
+        <span class="rail-pill"></span>
+        <div class="rail-icon-wrap">
+          <i class="ph-bold ph-plus"></i>
+        </div>
+      </button>
+      <button id="rail-switcher-btn" class="rail-item rail-action-item" title="Quick Switcher (Ctrl+K)">
+        <span class="rail-pill"></span>
+        <div class="rail-icon-wrap">
+          <i class="ph-bold ph-compass"></i>
+        </div>
+      </button>
+    </nav>
+
+    <div id="sidebar">
+      <div id="sidebar-channels-view" class="sidebar-view">
+        <div class="sidebar-header server-header-clickable" id="server-header-dropdown-trigger" title="Server Options">
+          <h2><i class="ph-bold ph-chats-circle" style="color:var(--accent);margin-right:6px;"></i><span id="server-name-label">Mellow</span><i class="ph-bold ph-caret-down server-dropdown-chevron"></i></h2>
+          <div class="sidebar-actions">
+            <button id="admin-dashboard-btn" title="Admin Dashboard" style="display:none"><i class="ph ph-shield-check"></i></button>
+            <button id="logout-btn" title="Logout"><i class="ph ph-sign-out"></i></button>
+          </div>
+        </div>
+        <div id="server-dropdown-menu" class="server-dropdown-menu" style="display:none">
+          <div class="dropdown-item" id="server-menu-add-channel"><i class="ph-bold ph-plus-circle"></i> Create Channel</div>
+          <div class="dropdown-item" id="server-menu-add-category"><i class="ph-bold ph-folder-plus"></i> Create Category</div>
+          <div class="dropdown-item" id="server-menu-members"><i class="ph-bold ph-users"></i> Server Members</div>
+          <div class="dropdown-divider" id="server-menu-divider-manage"></div>
+          <div class="dropdown-item" id="server-menu-settings"><i class="ph-bold ph-gear"></i> Server Settings</div>
+          <div class="dropdown-item danger" id="server-menu-delete" style="color:var(--danger);"><i class="ph-bold ph-trash"></i> Delete Server</div>
+        </div>
+        <div class="sidebar-scrollable">
+          <div id="channel-list"></div>
+        </div>
+      </div>
+
+      <div id="sidebar-dms-view" class="sidebar-view" style="display:none">
+        <div class="sidebar-header">
+          <h2><i class="ph-bold ph-chat-circle-dots" style="color:var(--accent);margin-right:6px;"></i>Direct Messages</h2>
+          <div class="sidebar-actions">
+            <button id="dm-admin-dashboard-btn" class="sidebar-icon-btn" title="Admin Dashboard" style="display:none"><i class="ph ph-shield-check"></i></button>
+            <button id="dm-logout-btn" class="sidebar-icon-btn" title="Logout"><i class="ph ph-sign-out"></i></button>
+          </div>
+        </div>
+        <div class="dm-search-bar">
+          <i class="ph-bold ph-magnifying-glass"></i>
+          <input type="text" id="dm-filter-input" placeholder="Find or start a conversation" autocomplete="off">
+        </div>
+        <div class="sidebar-scrollable">
+          <div class="sidebar-section">
+            <div class="section-header">
+              <span><i class="ph-bold ph-caret-down" style="font-size:10px;margin-right:4px;"></i> Conversations</span>
+            </div>
+            <div id="dm-list"></div>
+          </div>
+        </div>
+      </div>
+      <div id="voice-status-bar" class="voice-status-bar" style="display:none">
+        <div class="voice-status-left">
+          <div class="voice-status-icon"><i class="ph-bold ph-wifi-high"></i></div>
+          <div class="voice-status-info">
+            <span class="voice-status-title">Voice Connected</span>
+            <span id="voice-status-channel" class="voice-status-channel"></span>
+          </div>
+        </div>
+        <div class="voice-status-actions" style="display:flex;align-items:center;gap:4px;">
+          <button id="voice-status-settings-btn" class="voice-status-settings-btn" title="Voice Settings"><i class="ph-bold ph-gear"></i></button>
+          <button id="voice-status-disconnect-btn" class="voice-status-disconnect-btn" title="Disconnect"><i class="ph-bold ph-phone-disconnect"></i></button>
+        </div>
+      </div>
+      <div class="user-panel" id="user-panel">
+        <div id="status-picker-menu" class="status-picker-menu" style="display:none">
+          <div class="status-picker-header">
+            <span>Set Status</span>
+            <button id="status-picker-close-btn" class="status-picker-close-btn">&times;</button>
+          </div>
+          <div class="status-picker-custom">
+            <div class="status-input-wrap">
+              <input type="text" id="custom-status-input" placeholder="What's your status?" maxlength="80">
+              <button id="custom-status-clear-btn" class="custom-status-clear-btn" title="Clear status">&times;</button>
+            </div>
+            <button id="custom-status-save-btn" class="btn-primary custom-status-save-btn">Save Status</button>
+          </div>
+          <div class="status-picker-divider"></div>
+          <div class="status-picker-options">
+            <div class="status-option" data-status="online">
+              <span class="user-status-dot online"></span>
+              <div class="status-option-info">
+                <strong>Online</strong>
+              </div>
+            </div>
+            <div class="status-option" data-status="idle">
+              <span class="user-status-dot idle"></span>
+              <div class="status-option-info">
+                <strong>Idle</strong>
+              </div>
+            </div>
+            <div class="status-option" data-status="dnd">
+              <span class="user-status-dot dnd"></span>
+              <div class="status-option-info">
+                <strong>Do Not Disturb</strong>
+                <span class="status-option-sub">Mute notifications</span>
+              </div>
+            </div>
+            <div class="status-option" data-status="invisible">
+              <span class="user-status-dot invisible"></span>
+              <div class="status-option-info">
+                <strong>Invisible</strong>
+                <span class="status-option-sub">Appear offline</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="user-panel-profile" id="user-panel-profile" title="Change Status">
+          <div class="user-avatar-wrap">
+            <div class="user-avatar" id="user-avatar"></div>
+            <span class="user-status-dot online" id="user-status-dot"></span>
+          </div>
+          <div class="user-panel-details">
+            <span id="user-name" class="user-panel-name"></span>
+            <span id="user-role-badge" class="user-panel-tag"></span>
+            <span id="user-custom-status" class="user-custom-status" style="display:none"></span>
+          </div>
+        </div>
+        <div class="user-panel-controls">
+          <button id="sidebar-mute-btn" class="panel-icon-btn" title="Mute/Unmute"><i class="ph-bold ph-microphone"></i></button>
+          <button id="sidebar-deafen-btn" class="panel-icon-btn" title="Deafen/Undeafen"><i class="ph-bold ph-headphones"></i></button>
+          <button id="sidebar-settings-btn" class="panel-icon-btn" title="Settings"><i class="ph-bold ph-gear"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="sidebar-overlay" class="overlay"></div>
+    <div id="users-overlay" class="overlay"></div>
+
+    <div id="connection-banner" class="connection-overlay" style="display:none">
+      <div class="connection-card">
+        <div class="connection-spinner-loop"></div>
+        <div class="connection-card-content">
+          <h3 class="connection-title">Disconnected</h3>
+          <p id="connection-banner-text" class="connection-desc">Attempting to reconnect to server...</p>
+        </div>
+      </div>
+    </div>
+
+      <div id="chat-area">
+        <div id="chat-header">
+          <button id="sidebar-toggle" class="mobile-toggle" title="Channels"><i class="ph ph-list"></i></button>
+          <button id="dm-back-btn" class="header-action-btn dm-back-btn" title="Back to Direct Messages" style="display:none"><i class="ph-bold ph-caret-left"></i></button>
+          <span id="current-channel-name"></span>
+          <div id="dm-home-header-tabs" class="dm-home-header-tabs" style="display:none">
+            <span class="dm-home-title"><i class="ph-bold ph-users"></i> Direct Messages</span>
+            <div class="dm-home-header-sep"></div>
+            <button class="dm-home-filter-tab active" data-filter="online">Online</button>
+            <button class="dm-home-filter-tab" data-filter="all">All</button>
+          </div>
+          <div class="chat-header-actions">
+            <button id="dm-call-btn" class="header-action-btn" title="Start Voice Call" style="display:none"><i class="ph-bold ph-phone-call"></i></button>
+            <button id="quick-switcher-btn" class="header-action-btn" title="Quick Switcher (Ctrl+K)"><i class="ph-bold ph-compass"></i></button>
+            <button id="pinned-btn" class="header-action-btn" title="Pinned Messages">
+              <i class="ph-bold ph-push-pin"></i>
+              <span id="pinned-count-badge" class="header-badge" style="display:none">0</span>
+            </button>
+            <button id="search-btn" class="header-action-btn" title="Search Messages (Ctrl+F)"><i class="ph-bold ph-magnifying-glass"></i></button>
+            <button id="users-toggle" class="mobile-toggle" title="Online Users"><i class="ph ph-users"></i></button>
+          </div>
+        </div>
+        <div id="chat-drag-overlay" class="chat-drag-overlay" style="display:none">
+          <div class="chat-drag-box">
+            <div class="chat-drag-icon"><i class="ph-bold ph-cloud-arrow-up"></i></div>
+            <div class="chat-drag-title">Upload to <span id="chat-drag-channel-name">#channel</span></div>
+            <div class="chat-drag-subtitle">Release files to stage them in message box</div>
+          </div>
+        </div>
+        <div id="dm-home-view" class="dm-home-view" style="display:none">
+          <div class="dm-home-search-wrap">
+            <i class="ph ph-magnifying-glass"></i>
+            <input type="text" id="dm-home-search-input" placeholder="Search members..." autocomplete="off">
+          </div>
+          <div class="dm-home-section-header">
+            <span id="dm-home-section-title">Online &mdash; 0</span>
+          </div>
+          <div id="dm-home-members-list" class="dm-home-members-list"></div>
+        </div>
+        <div id="messages-container"></div>
+        <div id="pinned-drawer" class="pinned-drawer" style="display:none">
+          <div class="pinned-drawer-header">
+            <div class="pinned-drawer-title"><i class="ph-bold ph-push-pin"></i> Pinned Messages</div>
+            <button id="pinned-drawer-close" class="pinned-drawer-close-btn">&times;</button>
+          </div>
+          <div id="pinned-messages-list" class="pinned-messages-list"></div>
+        </div>
+        <button id="jump-to-unread" style="display:none"><i class="ph ph-arrow-up"></i> New Messages</button>
+        <button id="jump-to-present" style="display:none"><i class="ph ph-arrow-down"></i> Jump to present</button>
+        <div id="voice-view" style="display:none">
+          <div class="voice-channel-name"></div>
+          <div class="voice-participant-count"></div>
+          <div class="voice-join-row">
+            <button id="voice-join-btn">Join Voice</button>
+            <button id="voice-listen-only-btn" class="btn-secondary" title="Join without microphone"><i class="ph ph-headphones"></i> Listen Only</button>
+            <button class="vc-chat-toggle-btn" title="VC Chat"><i class="ph ph-chats"></i> VC Chat</button>
+          </div>
+        </div>
+        <div id="voice-active-view" style="display:none">
+          <div id="voice-active-header">
+            <div class="voice-status-dot"></div>
+            <span class="voice-label">Voice Connected</span>
+            <span class="voice-channel-label"></span>
+          </div>
+          <div id="voice-screen-area" style="display:none">
+            <div id="voice-screen-header">
+              <span><i class="ph ph-screencast"></i> <span id="voice-screen-label">Your Screen</span></span>
+              <span>
+                <button id="voice-livestream-mute-btn" class="livestream-mute-btn" title="Toggle stream audio"><i class="ph ph-speaker-x"></i></button>
+                <button id="voice-screen-stop-btn" style="display:none">Stop Sharing</button>
+              </span>
+            </div>
+            <div id="voice-screen-container"></div>
+          </div>
+          <div id="voice-participants"></div>
+        </div>
+        <div id="voice-chat-header" style="display:none">
+          <span><i class="ph ph-chats"></i> VC Chat</span>
+          <button id="voice-chat-close-btn" title="Close VC Chat">&times;</button>
+        </div>
+        <div id="reply-bar" style="display:none">
+          <span class="reply-bar-text"><i class="ph ph-arrow-bend-up-left"></i> Replying to <strong id="reply-bar-user"></strong>: <span id="reply-bar-snippet"></span></span>
+          <button id="reply-bar-close" title="Cancel reply">&times;</button>
+        </div>
+        <div id="message-input-area">
+          <button id="file-btn" title="Attach File"><i class="ph ph-paperclip"></i></button>
+          <input type="file" id="file-input" style="display:none" multiple>
+          <div id="file-chips" class="file-chips"></div>
+          <button id="emoji-btn" title="Emoji"><i class="ph ph-smiley"></i></button>
+          <div id="emoji-picker-container" style="display:none">
+            <emoji-picker></emoji-picker>
+          </div>
+          <textarea id="message-input" placeholder="Type a message..." rows="1" maxlength="4000"></textarea>
+      <div id="mention-dropdown" style="display:none"></div>
+      <button id="send-btn">Send</button>
+        </div>
+        <div id="voice-controls" style="display:none">
+          <button id="voice-chat-toggle-btn" class="voice-control-btn vc-chat-toggle-btn" title="VC Chat"><i class="ph ph-chats"></i></button>
+          <button id="voice-camera-btn" class="voice-control-btn" title="Camera"><i class="ph ph-video-camera"></i></button>
+          <button id="voice-mute-btn" class="voice-control-btn" title="Mute"><i class="ph ph-microphone"></i></button>
+          <button id="voice-deafen-btn" class="voice-control-btn" title="Deafen"><i class="ph ph-headphones"></i></button>
+          <button id="voice-screen-btn" class="voice-control-btn" title="Share Screen"><i class="ph ph-screencast"></i></button>
+          <button id="voice-settings-btn" class="voice-control-btn" title="Voice Settings"><i class="ph ph-gear"></i></button>
+          <button id="voice-leave-btn" class="voice-control-btn" title="Leave Call"><i class="ph ph-phone-disconnect"></i></button>
+        </div>
+      </div>
+
+    <div id="users-sidebar">
+      <div id="channel-members-view">
+        <div class="sidebar-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <h3>Online  &mdash; <span id="online-count">0</span></h3>
+          <button id="server-add-members-sidebar-btn" class="sidebar-add-members-btn" title="Add Members to Server" style="display:none;">
+            <i class="ph-bold ph-user-plus"></i> Add
+          </button>
+        </div>
+        <div id="user-list"></div>
+        <div class="sidebar-header offline-header">
+          <h3>Offline &mdash; <span id="offline-count">0</span></h3>
+        </div>
+        <div id="offline-user-list"></div>
+      </div>
+
+      <div id="dm-profile-card" class="dm-profile-card" style="display:none">
+        <div class="dm-profile-banner"></div>
+        <div class="dm-profile-header-content">
+          <div class="dm-profile-avatar-wrap">
+            <div id="dm-profile-avatar-container" class="dm-profile-avatar-container">
+              <img id="dm-profile-avatar" src="/img/avatars/avatar-1.svg" alt="Recipient Avatar">
+              <span id="dm-profile-status-dot" class="user-status-dot online"></span>
+            </div>
+          </div>
+          <div class="dm-profile-info">
+            <h3 id="dm-profile-name" class="dm-profile-name">Ghostie</h3>
+            <span id="dm-profile-tag" class="dm-profile-tag">Member</span>
+            <div id="dm-profile-status-text" class="dm-profile-status-text">Online</div>
+          </div>
+        </div>
+        <div class="dm-profile-actions">
+          <button id="dm-profile-call-btn" class="btn-profile-action" title="Start Call">
+            <i class="ph-bold ph-phone-call"></i>
+            <span>Voice Call</span>
+          </button>
+        </div>
+        <div class="dm-profile-divider"></div>
+        <div class="dm-profile-section">
+          <h4>ABOUT ME</h4>
+          <p id="dm-profile-bio-text" class="dm-profile-bio"></p>
+        </div>
+        <div class="dm-profile-section">
+          <h4>MELLOW MEMBER</h4>
+          <p class="dm-profile-subtext">Active LAN User</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="settings-modal" class="modal" style="display:none">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Settings</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-section">
+          <h4>Profile Picture</h4>
+          <div class="profile-pic-section">
+            <img id="settings-profile-pic" src="" alt="Profile">
+            <input type="file" id="profile-pic-input" accept="image/*" style="display:none">
+            <div class="profile-pic-btn-row">
+              <button id="upload-pic-btn" class="btn-secondary"><i class="ph-bold ph-upload-simple"></i> Upload Picture</button>
+              <button id="adjust-pic-btn" class="btn-secondary"><i class="ph-bold ph-crop"></i> Adjust</button>
+            </div>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h4>About Me</h4>
+          <textarea id="settings-aboutme" rows="3" placeholder="Tell everyone about yourself..." maxlength="300" style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);color:var(--text-primary);resize:vertical;font-family:inherit;font-size:14px;box-sizing:border-box;"></textarea>
+        </div>
+        <div class="settings-section">
+          <h4>Account</h4>
+          <input type="text" id="settings-username" placeholder="New username" maxlength="20">
+          <input type="password" id="settings-current-password" placeholder="Current password" autocomplete="current-password">
+          <input type="password" id="settings-password" placeholder="New password (min 8 chars)" minlength="8" autocomplete="new-password">
+          <div id="settings-error" class="error-message"></div>
+          <button id="save-settings-btn" class="btn-primary">Save Changes</button>
+        </div>
+        <div class="settings-section">
+          <h4>Notifications</h4>
+          <p class="settings-desc">Choose what notifications you want to receive.</p>
+          <div class="notification-options">
+            <label class="radio-option">
+              <input type="radio" name="notification-setting" value="all" checked>
+              <div class="radio-label-group">
+                <span class="radio-title">All notifications</span>
+                <span class="radio-desc">Receive notifications on all messages (excluding voice chat).</span>
+              </div>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="notification-setting" value="mentions">
+              <div class="radio-label-group">
+                <span class="radio-title">Only @mentions</span>
+                <span class="radio-desc">Only get sound notifications for mentions and direct messages.</span>
+              </div>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="notification-setting" value="mute">
+              <div class="radio-label-group">
+                <span class="radio-title">Mute notifications</span>
+                <span class="radio-desc">Mute all notification sounds.</span>
+              </div>
+            </label>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h4><i class="ph-bold ph-sliders" style="color:var(--accent);margin-right:6px;"></i>Voice &amp; Audio</h4>
+          <p class="settings-desc">Choose your microphone and speaker devices.</p>
+          <div class="settings-group" style="margin-top:14px;">
+            <label class="settings-label" for="settings-voice-input-select">
+              <i class="ph-bold ph-microphone"></i> INPUT DEVICE (MICROPHONE)
+            </label>
+            <select id="settings-voice-input-select" class="voice-device-select"></select>
+            <div class="mic-test-row">
+              <div class="mic-meter-wrapper" title="Input Level">
+                <div id="settings-voice-mic-meter" class="mic-meter-fill"></div>
+              </div>
+              <button type="button" id="settings-voice-test-mic-btn" class="btn-secondary mic-test-btn">
+                <i class="ph-bold ph-waveform"></i> <span>Test Mic</span>
+              </button>
+            </div>
+          </div>
+          <div class="settings-group" style="margin-top:18px;">
+            <label class="settings-label" for="settings-voice-output-select">
+              <i class="ph-bold ph-speaker-high"></i> OUTPUT DEVICE (SPEAKER)
+            </label>
+            <select id="settings-voice-output-select" class="voice-device-select"></select>
+            <div class="speaker-test-row">
+              <button type="button" id="settings-voice-test-speaker-btn" class="btn-secondary test-speaker-btn">
+                <i class="ph-bold ph-play"></i> Test Sound
+              </button>
+              <span id="settings-voice-output-notice" class="device-notice-text" style="display:none;"></span>
+            </div>
+          </div>
+          <div class="settings-group" style="margin-top:18px;">
+            <label class="settings-label" for="settings-noise-engine-select">
+              <i class="ph-bold ph-waves"></i> NOISE SUPPRESSION
+            </label>
+            <select id="settings-noise-engine-select" class="voice-device-select"></select>
+            <p id="settings-noise-hint" class="settings-desc" style="margin:8px 0 0;"></p>
+            <div class="noise-strength-row">
+              <label class="settings-label" for="settings-noise-strength">
+                <i class="ph-bold ph-sliders-horizontal"></i> STRENGTH
+              </label>
+              <input type="range" id="settings-noise-strength" class="noise-strength-range" min="0" max="100" step="1" value="100">
+              <span id="settings-noise-strength-value" class="noise-strength-value">100%</span>
+            </div>
+            <p id="settings-noise-load" class="device-notice-text" style="display:none;"></p>
+            <p id="settings-noise-notice" class="device-notice-text" style="display:none;"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="avatar-crop-modal" class="modal" style="display:none">
+    <div class="modal-content avatar-crop-modal-content">
+      <div class="modal-header">
+        <h3><i class="ph-bold ph-crop" style="color:var(--accent);margin-right:6px;"></i>Adjust Profile Picture</h3>
+        <button class="modal-close" id="avatar-crop-close">&times;</button>
+      </div>
+      <div class="modal-body avatar-crop-body">
+        <p class="avatar-crop-instructions">Drag to reposition, use slider to zoom.</p>
+        <div class="avatar-crop-container">
+          <div class="avatar-crop-viewport" id="avatar-crop-viewport">
+            <img id="avatar-crop-img" src="" alt="Crop Preview" draggable="false">
+            <div class="avatar-crop-mask"></div>
+          </div>
+        </div>
+        <div class="avatar-crop-controls">
+          <button class="crop-zoom-btn" id="crop-zoom-out" title="Zoom Out"><i class="ph-bold ph-minus"></i></button>
+          <input type="range" id="avatar-crop-zoom" min="1" max="3" step="0.01" value="1" title="Zoom">
+          <button class="crop-zoom-btn" id="crop-zoom-in" title="Zoom In"><i class="ph-bold ph-plus"></i></button>
+        </div>
+        <div class="avatar-crop-actions">
+          <button id="avatar-crop-reset" class="btn-secondary">Reset</button>
+          <button id="avatar-crop-cancel" class="btn-secondary">Cancel</button>
+          <button id="avatar-crop-save" class="btn-primary">Save Picture</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="admin-modal" class="modal" style="display:none">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3>Admin Dashboard</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <details id="admin-pending-details">
+          <summary id="admin-pending-summary">Registration requests <span class="pending-badge" id="admin-pending-count" style="display:none">0</span></summary>
+          <div id="admin-pending-list"><div class="pending-empty">No pending requests</div></div>
+        </details>
+        <div id="admin-user-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="channel-modal" class="modal" style="display:none">
+    <div class="modal-content modal-sm">
+      <div class="modal-header">
+        <h3>Create Channel</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="channel-name-input" placeholder="Channel name" maxlength="30">
+        <div class="channel-type-selector">
+          <label class="channel-type-option">
+            <input type="radio" name="channel-type" value="text" checked>
+            <span># Text</span>
+          </label>
+          <label class="channel-type-option">
+            <input type="radio" name="channel-type" value="voice">
+            <span><i class="ph ph-headphones"></i> Voice</span>
+          </label>
+        </div>
+
+        <div class="channel-privacy-toggle-row">
+          <div class="privacy-toggle-info">
+            <span class="privacy-toggle-title"><i class="ph-bold ph-lock-key"></i> Private Channel</span>
+            <span class="privacy-toggle-desc">Only selected members and admins can view and participate in this channel</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="create-channel-private-toggle">
+            <span class="slider round"></span>
+          </label>
+        </div>
+
+        <div id="create-channel-members-wrap" style="display:none">
+          <label class="form-label">Who can access this channel?</label>
+          <div id="create-channel-members-list" class="channel-members-checklist"></div>
+        </div>
+
+        <div id="channel-error" class="error-message"></div>
+        <button id="create-channel-btn" class="btn-primary">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="channel-settings-modal" class="modal" style="display:none">
+    <div class="modal-content modal-md">
+      <div class="modal-header">
+        <h3 id="channel-settings-title">Channel Settings</h3>
+        <button class="modal-close" id="channel-settings-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label">Channel Name</label>
+        <input type="text" id="channel-settings-name-input" maxlength="30">
+        
+        <div class="channel-privacy-toggle-row">
+          <div class="privacy-toggle-info">
+            <span class="privacy-toggle-title"><i class="ph-bold ph-lock-key"></i> Private Channel</span>
+            <span class="privacy-toggle-desc">Only selected members and admins can view and participate in this channel</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="channel-settings-private-toggle">
+            <span class="slider round"></span>
+          </label>
+        </div>
+
+        <div id="channel-settings-members-section" style="display:none">
+          <label class="form-label">Who can access this channel?</label>
+          <div id="channel-settings-members-list" class="channel-members-checklist"></div>
+        </div>
+
+        <div id="channel-settings-error" class="error-message"></div>
+        <div class="modal-actions">
+          <button id="channel-settings-cancel-btn" class="btn-secondary">Cancel</button>
+          <button id="channel-settings-save-btn" class="btn-primary">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="quick-switcher-modal" class="modal" style="display:none">
+    <div class="modal-content quick-switcher-content">
+      <div class="quick-switcher-header">
+        <i class="ph-bold ph-magnifying-glass quick-switcher-search-icon"></i>
+        <input type="text" id="quick-switcher-input" placeholder="Where would you like to go? (Type to search channels, users...)" autocomplete="off" spellcheck="false">
+        <kbd class="quick-switcher-kbd">ESC</kbd>
+      </div>
+      <div id="quick-switcher-results" class="quick-switcher-results"></div>
+      <div class="quick-switcher-footer">
+        <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+        <span><kbd>↵</kbd> Select</span>
+        <span><kbd>esc</kbd> Dismiss</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="search-modal" class="modal" style="display:none">
+    <div class="modal-content search-modal-content">
+      <div class="search-modal-header">
+        <i class="ph-bold ph-magnifying-glass search-modal-icon"></i>
+        <input type="text" id="search-input" placeholder="Search messages (e.g. from:user, has:file)..." autocomplete="off" spellcheck="false">
+        <button id="search-modal-close" class="modal-close">&times;</button>
+      </div>
+      <div class="search-scope-bar">
+        <button class="search-scope-btn active" data-scope="channel" id="search-scope-channel">This Channel</button>
+        <button class="search-scope-btn" data-scope="all" id="search-scope-all">All Channels</button>
+      </div>
+      <div id="search-results" class="search-results"></div>
+    </div>
+  </div>
+
+  <div id="dm-calling-modal" class="modal" style="display:none">
+    <div class="modal-content dm-call-modal-content">
+      <div class="dm-call-avatar-container">
+        <img id="dm-calling-avatar" src="" alt="Avatar" class="dm-call-avatar pulsing-ring">
+      </div>
+      <h3 id="dm-calling-username" class="dm-call-username">Calling...</h3>
+      <p id="dm-calling-status" class="dm-call-status">Ringing...</p>
+      <div class="dm-call-actions">
+        <button id="dm-calling-cancel-btn" class="btn-call-end" title="Cancel Call">
+          <i class="ph-bold ph-phone-disconnect"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="dm-incoming-call-modal" class="modal" style="display:none">
+    <div class="modal-content dm-call-modal-content">
+      <div class="dm-call-avatar-container">
+        <img id="dm-incoming-avatar" src="" alt="Avatar" class="dm-call-avatar pulsing-ring">
+      </div>
+      <h3 id="dm-incoming-username" class="dm-call-username">Incoming Call</h3>
+      <p class="dm-call-status">Incoming voice call...</p>
+      <div class="dm-call-actions">
+        <button id="dm-incoming-decline-btn" class="btn-call-end" title="Decline">
+          <i class="ph-bold ph-phone-disconnect"></i>
+        </button>
+        <button id="dm-incoming-accept-btn" class="btn-call-accept" title="Accept">
+          <i class="ph-bold ph-phone-call"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="miniplayer" style="display:none">
+    <div id="miniplayer-content">
+      <span id="miniplayer-speaking"><span class="miniplayer-dot"></span></span>
+      <span id="miniplayer-channel-name"></span>
+      <div id="miniplayer-actions">
+        <button id="miniplayer-mute-btn" title="Mute"><i class="ph ph-microphone"></i></button>
+        <button id="miniplayer-deafen-btn" title="Deafen"><i class="ph ph-headphones"></i></button>
+        <button id="miniplayer-leave-btn" title="Disconnect"><i class="ph ph-phone-disconnect"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="typing-indicator" style="display:none">
+    <span id="typing-text"></span>
+    <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
+  </div>
+
+  <div id="floating-screen-share" style="display:none">
+    <div id="floating-screen-header">
+      <span><i class="ph ph-screencast"></i> <span id="floating-screen-label">Screen Share</span></span>
+      <span>
+        <button id="floating-livestream-mute-btn" class="livestream-mute-btn" title="Toggle stream audio"><i class="ph ph-speaker-x"></i></button>
+        <button id="floating-screen-close-btn">&times;</button>
+      </span>
+    </div>
+    <div id="floating-screen-container"></div>
+  </div>
+
+  <div id="image-viewer" style="display:none">
+    <img id="image-viewer-img" alt="">
+    <button id="image-viewer-close" title="Close">&times;</button>
+  </div>
+
+  <div id="reaction-picker" style="display:none">
+    <div class="quick-reactions-bar">
+      <button class="quick-reaction-btn" data-emoji="👍">👍</button>
+      <button class="quick-reaction-btn" data-emoji="❤️">❤️</button>
+      <button class="quick-reaction-btn" data-emoji="😂">😂</button>
+      <button class="quick-reaction-btn" data-emoji="😮">😮</button>
+      <button class="quick-reaction-btn" data-emoji="😢">😢</button>
+      <button class="quick-reaction-btn" data-emoji="🔥">🔥</button>
+    </div>
+    <emoji-picker id="reaction-emoji-picker"></emoji-picker>
+  </div>
+
+  <div id="context-menu" style="display:none">
+    <div id="context-menu-items"></div>
+  </div>
+
+  <!-- Floating User Profile Popover -->
+  <div id="user-profile-popover" class="user-profile-popover" style="display:none">
+    <div class="popover-banner"></div>
+    <div class="popover-body">
+      <div class="popover-avatar-wrap">
+        <img id="popover-avatar" src="/img/avatars/avatar-1.svg" alt="Avatar">
+        <span id="popover-status-dot" class="user-status-dot online"></span>
+      </div>
+      <div class="popover-user-info">
+        <div class="popover-name-row">
+          <span id="popover-username" class="popover-username"></span>
+          <span id="popover-role-badge" class="role-badge"></span>
+        </div>
+        <div id="popover-custom-status" class="popover-custom-status" style="display:none"></div>
+      </div>
+      <div class="popover-divider"></div>
+      <div class="popover-section">
+        <h5>ABOUT ME</h5>
+        <p id="popover-bio" class="popover-bio"></p>
+      </div>
+      <div class="popover-section">
+        <h5>MELLOW MEMBER</h5>
+        <p id="popover-member-since" class="popover-subtext">Active LAN User</p>
+      </div>
+      <div class="popover-actions">
+        <button id="popover-action-btn" class="btn-profile-action">
+          <i class="ph-bold ph-chat-circle-dots"></i>
+          <span>Message</span>
+        </button>
+        <button id="popover-call-btn" class="btn-profile-action" style="display:none">
+          <i class="ph-bold ph-phone-call"></i>
+          <span>Call</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Server Modal -->
+  <div id="create-server-modal" class="modal" style="display:none">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Create a Server</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--text-secondary);font-size:13px;margin-bottom:14px;">Your server is where you and your friends or team chat. Give it a name to get started.</p>
+        <div class="settings-section">
+          <h4>Server Icon</h4>
+          <div class="server-icon-picker">
+            <div class="server-icon-preview-wrap">
+              <img id="create-server-icon-preview" src="/img/server-icons/icon-1.svg" alt="Icon Preview" class="server-icon-preview">
+            </div>
+            <div class="server-icon-choices">
+              <div class="premade-icons-row" id="create-server-premade-icons">
+                <button type="button" class="premade-icon-btn active" data-icon="/img/server-icons/icon-1.svg" title="Mellow Teal"><img src="/img/server-icons/icon-1.svg" alt="Icon 1"></button>
+                <button type="button" class="premade-icon-btn" data-icon="/img/server-icons/icon-2.svg" title="Arcade Purple"><img src="/img/server-icons/icon-2.svg" alt="Icon 2"></button>
+                <button type="button" class="premade-icon-btn" data-icon="/img/server-icons/icon-3.svg" title="Pulse Coral"><img src="/img/server-icons/icon-3.svg" alt="Icon 3"></button>
+                <button type="button" class="premade-icon-btn" data-icon="/img/server-icons/icon-4.svg" title="Cosmic Amber"><img src="/img/server-icons/icon-4.svg" alt="Icon 4"></button>
+                <button type="button" class="premade-icon-btn" data-icon="/img/server-icons/icon-5.svg" title="Lounge Emerald"><img src="/img/server-icons/icon-5.svg" alt="Icon 5"></button>
+              </div>
+              <div class="server-icon-upload-action">
+                <input type="file" id="create-server-icon-file" accept="image/*" style="display:none">
+                <button type="button" id="create-server-upload-btn" class="btn-secondary btn-sm"><i class="ph-bold ph-upload-simple"></i> Upload Custom Icon</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h4>Server Name</h4>
+          <input type="text" id="create-server-name" placeholder="My Awesome Server" maxlength="32" required style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);color:var(--text-primary);box-sizing:border-box;">
+          <div id="create-server-error" class="error-message"></div>
+          <button id="submit-create-server-btn" class="btn-primary" style="margin-top:14px;width:100%;">Create Server</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Category Modal -->
+  <div id="create-category-modal" class="modal" style="display:none">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Create Category</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--text-secondary);font-size:13px;margin-bottom:14px;">Categories organize channels into groups.</p>
+        <div class="settings-section">
+          <h4>Category Name</h4>
+          <input type="text" id="create-category-name" placeholder="e.g. Text Lounges, Voice Rooms" maxlength="32" required style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);color:var(--text-primary);box-sizing:border-box;">
+          <div id="create-category-error" class="error-message"></div>
+          <button id="submit-create-category-btn" class="btn-primary" style="margin-top:14px;width:100%;">Create Category</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Server Members Modal -->
+  <div id="server-members-modal" class="modal" style="display:none">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3 id="server-members-modal-title">Server Members</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--text-secondary);font-size:13px;margin-bottom:14px;">Manage LAN users that have access to this server and its channels.</p>
+        <div id="server-members-list" class="server-members-manage-list" style="max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Server Settings Modal -->
+  <div id="server-settings-modal" class="modal" style="display:none">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="server-settings-modal-title">Server Settings</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-section">
+          <h4>Server Icon</h4>
+          <div class="server-icon-picker">
+            <div class="server-icon-preview-wrap">
+              <img id="edit-server-icon-preview" src="/img/server-icons/icon-1.svg" alt="Icon Preview" class="server-icon-preview">
+            </div>
+            <div class="server-icon-choices">
+              <div class="premade-icons-row" id="edit-server-premade-icons">
+                <button type="button" class="premade-icon-btn" data-icon="/img/server-icons/icon-1.svg" title="Mellow Teal"><img src="/img/server-icons/icon-1.svg" alt="Icon 1"></button>
+                <button type="button" class="premade-icon-btn" data-icon="/img/server-icons/icon-2.svg" title="Arcade Purple"><img src="/img/server-icons/icon-2.svg" alt="Icon 2"></button>
+                <button type="button" class="premade-icon-btn" data-icon="/img/server-icons/icon-3.svg" title="Pulse Coral"><img src="/img/server-icons/icon-3.svg" alt="Icon 3"></button>
+                <button type="button" class="premade-icon-btn" data-icon="/img/server-icons/icon-4.svg" title="Cosmic Amber"><img src="/img/server-icons/icon-4.svg" alt="Icon 4"></button>
+                <button type="button" class="premade-icon-btn" data-icon="/img/server-icons/icon-5.svg" title="Lounge Emerald"><img src="/img/server-icons/icon-5.svg" alt="Icon 5"></button>
+              </div>
+              <div class="server-icon-upload-action">
+                <input type="file" id="edit-server-icon-file" accept="image/*" style="display:none">
+                <button type="button" id="edit-server-upload-btn" class="btn-secondary btn-sm"><i class="ph-bold ph-upload-simple"></i> Upload Custom Icon</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h4>Server Name</h4>
+          <input type="text" id="edit-server-name" placeholder="Server Name" maxlength="32" required style="width:100%;padding:10px 12px;background:var(--bg-tertiary);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);color:var(--text-primary);box-sizing:border-box;">
+          <div id="edit-server-error" class="error-message"></div>
+          <button id="save-server-settings-btn" class="btn-primary" style="margin-top:14px;width:100%;">Save Changes</button>
+        </div>
+        <div class="settings-section" id="server-settings-danger-section" style="border-top:1px solid var(--border-subtle);padding-top:14px;margin-top:16px;">
+          <h4 style="color:var(--danger);">Danger Zone</h4>
+          <p style="color:var(--text-secondary);font-size:12px;margin-bottom:10px;">Deleting a server permanently removes all its channels and messages.</p>
+          <button id="delete-server-btn" class="btn-danger" style="width:100%;"><i class="ph-bold ph-trash"></i> Delete Server</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Themed Dialog Modal -->
+  <div id="mellow-dialog-modal" class="modal" style="display:none">
+    <div class="modal-content modal-sm mellow-dialog-content">
+      <div class="mellow-dialog-header">
+        <div id="mellow-dialog-icon" class="mellow-dialog-icon"></div>
+        <h3 id="mellow-dialog-title">Confirm</h3>
+      </div>
+      <div class="mellow-dialog-body">
+        <p id="mellow-dialog-message"></p>
+        <input type="text" id="mellow-dialog-input" style="display:none" autocomplete="off">
+        <div id="mellow-dialog-error" class="error-message" style="display:none"></div>
+      </div>
+      <div class="mellow-dialog-actions">
+        <button id="mellow-dialog-cancel-btn" class="btn-secondary">Cancel</button>
+        <button id="mellow-dialog-confirm-btn" class="btn-primary">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Voice & Audio Settings Modal -->
+  <div id="voice-settings-modal" class="modal" style="display:none">
+    <div class="modal-content voice-settings-modal-content">
+      <div class="modal-header">
+        <h3><i class="ph-bold ph-sliders" style="color:var(--accent);margin-right:8px;"></i>Voice &amp; Audio Settings</h3>
+        <button class="modal-close" id="voice-settings-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-group">
+          <label class="settings-label" for="voice-modal-input-select">
+            <i class="ph-bold ph-microphone"></i> INPUT DEVICE (MICROPHONE)
+          </label>
+          <select id="voice-modal-input-select" class="voice-device-select"></select>
+          <div class="mic-test-row">
+            <div class="mic-meter-wrapper" title="Input Level">
+              <div id="voice-modal-mic-meter" class="mic-meter-fill"></div>
+            </div>
+            <button type="button" id="voice-modal-test-mic-btn" class="btn-secondary mic-test-btn">
+              <i class="ph-bold ph-waveform"></i> <span>Test Mic</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="settings-group" style="margin-top:20px;">
+          <label class="settings-label" for="voice-modal-output-select">
+            <i class="ph-bold ph-speaker-high"></i> OUTPUT DEVICE (SPEAKER)
+          </label>
+          <select id="voice-modal-output-select" class="voice-device-select"></select>
+          <div class="speaker-test-row">
+            <button type="button" id="voice-modal-test-speaker-btn" class="btn-secondary test-speaker-btn">
+              <i class="ph-bold ph-play"></i> Test Sound
+            </button>
+            <span id="voice-modal-output-notice" class="device-notice-text" style="display:none;"></span>
+          </div>
+        </div>
+
+        <div class="settings-group" style="margin-top:20px;">
+          <label class="settings-label" for="voice-modal-noise-engine-select">
+            <i class="ph-bold ph-waves"></i> NOISE SUPPRESSION
+          </label>
+          <select id="voice-modal-noise-engine-select" class="voice-device-select"></select>
+          <p id="voice-modal-noise-hint" class="settings-desc" style="margin:8px 0 0;"></p>
+          <div class="noise-strength-row">
+            <label class="settings-label" for="voice-modal-noise-strength">
+              <i class="ph-bold ph-sliders-horizontal"></i> STRENGTH
+            </label>
+            <input type="range" id="voice-modal-noise-strength" class="noise-strength-range" min="0" max="100" step="1" value="100">
+            <span id="voice-modal-noise-strength-value" class="noise-strength-value">100%</span>
+          </div>
+          <p id="voice-modal-noise-load" class="device-notice-text" style="display:none;"></p>
+          <p id="voice-modal-noise-notice" class="device-notice-text" style="display:none;"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/js/lib/emoji-picker-element/index.js"></script>
+  <script src="/js/text-format.js?v=1.2.1"></script>
+  <script src="/js/embed.js?v=1.2.2"></script>
+  <script src="/js/rnnoise.js?v=1.2.4"></script>
+  <script src="/js/noise-suppression.js?v=1.2.4"></script>
+  <script src="/js/main.js?v=1.3.3"></script>
+</body>
+</html>

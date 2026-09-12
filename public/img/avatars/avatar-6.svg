@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <rect width="128" height="128" rx="64" fill="#00B0B9"/>
+  <g fill="#FFFFFF">
+    <!-- Helmet outer -->
+    <path d="M64 26 C42 26 28 40 28 64 C28 82 38 96 52 100 L52 104 L76 104 L76 100 C90 96 100 82 100 64 C100 40 86 26 64 26 Z"/>
+    <!-- Visor -->
+    <path d="M64 36 C46 36 38 46 38 62 C38 78 46 84 64 84 C82 84 90 78 90 62 C90 46 82 36 64 36 Z" fill="#1E1F22"/>
+    <!-- Visor reflection -->
+    <path d="M46 44 C42 48 42 56 42 62 C42 66 44 68 44 68 C42 64 42 54 48 48 C52 44 58 42 64 42 C60 40 52 40 46 44 Z" fill="#57F287" opacity="0.8"/>
+  </g>
+</svg>
