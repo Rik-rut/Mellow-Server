@@ -32,12 +32,19 @@ Choose the method for your system:
 
 You can run Mellow on your ZimaOS or CasaOS home server using Docker:
 
+#### Method A: 1-Click Import in ZimaOS App Store (Easiest)
+1. In your ZimaOS or CasaOS dashboard, open the **App Store**.
+2. Click **Custom Install** (top right) -> click **Import**.
+3. Paste the contents of `docker-compose.yml` (or upload the file).
+4. Click **Install**. ZimaOS will automatically pull `rikrut/mellow-server:latest` and launch the app.
+
+#### Method B: Via Server Terminal
 1. Copy or clone the Mellow-Server folder to your server.
-2. In your server terminal, navigate to the folder and run:
+2. In your server terminal, run:
    ```bash
-   sudo docker compose up -d --build
+   sudo docker compose up -d
    ```
-3. The server will start in the background and stay running automatically, even after restarts.
+3. The server will pull the image and run in the background.
 
 ---
 

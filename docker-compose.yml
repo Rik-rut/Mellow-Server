@@ -6,10 +6,11 @@ name: mellow
 
 services:
   mellow:
-    image: mellow:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: rikrut/mellow-server:latest
+    # Optional: uncomment build if building locally from source
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
     container_name: mellow
     restart: unless-stopped
     environment:
