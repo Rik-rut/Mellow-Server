@@ -6,7 +6,7 @@ name: mellow
 
 services:
   mellow:
-    image: rikrut/mellow-server:latest
+    image: mellow:latest
     build:
       context: .
       dockerfile: Dockerfile
