@@ -84,6 +84,21 @@ This is completely normal for private home servers.
 
 ---
 
+## Client Apps for Desktop and Mobile
+
+In addition to using any web browser, dedicated native client apps are available for:
+- Windows
+- macOS
+- Linux
+- Android
+
+Get the client application from the official repository:
+[Mellow Client on GitHub](https://github.com/Rik-rut/Mellow-Client)
+
+The client apps automatically detect your Mellow server on your home Wi-Fi using local network discovery, so you can connect instantly without typing in your server IP address.
+
+---
+
 ## Connecting Outside Your Home (For Friends and Family)
 
 If you want friends or family members who live elsewhere to chat and call on your server, you do not need to open router ports or pay for server hosting. You can use any of these free methods:
