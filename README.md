@@ -140,7 +140,8 @@ Cloudflare Tunnel lets you create a public web link (like `https://chat.yourdoma
    - Turn ON **No TLS Verify** (required for Mellow's local SSL certificate).
    - (Optional) Set **HTTP Host Header** to `localhost`.
 4. In your main Cloudflare dashboard under **Network**, make sure **WebSockets** is turned ON.
-5. Click **Save hostname**. Anyone can now open your link and chat immediately.
+5. Click **Save hostname**. Anyone can now open your link and chat immediately in a web browser.
+6. **Connecting with the Mellow Client app**: Enter your domain with `:443` at the end (for example, `chat.yourdomain.com:443`). Without `:443`, the client app defaults to local port 6767.
 
 ---
 
@@ -174,6 +175,7 @@ data/
 |---|---|
 | The web page will not load | Make sure your phone or laptop is on the same Wi-Fi network as the server computer. Double-check that you typed `https://` at the start of the address, not `http://`. |
 | Cloudflare Tunnel shows "Bad gateway Error code 502" | In Cloudflare Zero Trust -> Networks -> Tunnels -> Public Hostname: change Type to HTTPS (not HTTP), set URL to `localhost:6767`, and turn ON "No TLS Verify" under Additional Settings -> TLS. |
+| Client app shows "Could not reach ...:6767" on Cloudflare Tunnel | In the Mellow Client app, add `:443` to the end of your address (for example, `chat.yourdomain.com:443`). Cloudflare routes web traffic on port 443, not 6767. |
 | Microphone or camera will not turn on | Browsers require a secure connection to use microphones and cameras. Make sure the address starts with `https://` and that you accepted the browser certificate prompt. |
 | Where do I find the 6-digit registration code? | Look at the black terminal window on the computer running the server. If using Docker, run `sudo docker logs -f mellow`. |
 | "Node.js version" error when starting | Mellow requires Node.js version 22.5 or newer. Download the current LTS version from [nodejs.org](https://nodejs.org/) and run the launcher again. |
