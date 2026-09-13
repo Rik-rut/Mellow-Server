@@ -2,7 +2,7 @@
 set -e
 
 # Change directory to the script's folder
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" >/dev/null 2>&1 && pwd)"
 cd "$SCRIPT_DIR"
 
 echo "========================================================"
@@ -15,6 +15,14 @@ if ! command -v node >/dev/null 2>&1; then
     echo "[ERROR] Node.js is not installed or not in PATH!"
     echo "Please download and install Node.js 22.5.0 or higher:"
     echo "  https://nodejs.org/ (or via nvm / package manager)"
+    echo ""
+    exit 1
+fi
+
+# Check for npm
+if ! command -v npm >/dev/null 2>&1; then
+    echo "[ERROR] npm is not installed or not in PATH!"
+    echo "Please ensure npm is installed along with Node.js."
     echo ""
     exit 1
 fi
@@ -39,7 +47,11 @@ fi
 if [[ "$FORCE_INSTALL" -eq 1 ]]; then
     echo "[INFO] Dependencies missing or incomplete."
     echo "[INFO] Auto-downloading and installing dependencies via npm..."
-    npm install
+    if ! npm install; then
+        echo ""
+        echo "[ERROR] npm install encountered an error!"
+        exit 1
+    fi
     echo "[SUCCESS] Dependencies downloaded and installed successfully."
     echo ""
 fi

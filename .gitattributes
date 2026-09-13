@@ -1,0 +1,6 @@
+# Ensure shell scripts always have Unix LF line endings
+*.sh text eol=lf
+
+# Ensure Windows batch scripts always have Windows CRLF line endings
+*.bat text eol=crlf
+*.cmd text eol=crlf
