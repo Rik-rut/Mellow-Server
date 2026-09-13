@@ -130,15 +130,17 @@ Radmin VPN connects Windows PCs together like a virtual local network.
 
 ### Method 3: Cloudflare Tunnel (No App Required on Friend's Devices)
 
-Cloudflare Tunnel lets you create a real web link (like `https://chat.yourdomain.com`) so visitors can join directly without installing any VPN app.
+Cloudflare Tunnel lets you create a public web link (like `https://chat.yourdomain.com`) so visitors can join directly from any browser without installing a VPN.
 
-1. Set up a free **Cloudflare Tunnel** in your Cloudflare dashboard (under Zero Trust -> Networks -> Tunnels).
-2. Point the tunnel destination to your local server:
-   - Service: `HTTPS`
-   - URL: `localhost:6767`
-   - Additional Settings -> TLS: Enable **No TLS Verify** (so Cloudflare accepts Mellow's local certificate).
-3. Cloudflare gives you a secure public web link.
-4. Send that web link to your friends and family. Anyone can click it from any phone or computer and chat immediately with a green padlock.
+1. In the [Cloudflare Zero Trust Dashboard](https://one.dash.cloudflare.com/), go to **Networks -> Tunnels** and configure your tunnel.
+2. Under **Public Hostname**, set up your address with these exact settings:
+   - **Type**: `HTTPS` (do not select HTTP, or you will get Error 502 Bad Gateway).
+   - **URL**: `localhost:6767`
+3. Expand **Additional application settings -> TLS**:
+   - Turn ON **No TLS Verify** (required for Mellow's local SSL certificate).
+   - (Optional) Set **HTTP Host Header** to `localhost`.
+4. In your main Cloudflare dashboard under **Network**, make sure **WebSockets** is turned ON.
+5. Click **Save hostname**. Anyone can now open your link and chat immediately.
 
 ---
 
@@ -171,6 +173,7 @@ data/
 | Problem | Simple Solution |
 |---|---|
 | The web page will not load | Make sure your phone or laptop is on the same Wi-Fi network as the server computer. Double-check that you typed `https://` at the start of the address, not `http://`. |
+| Cloudflare Tunnel shows "Bad gateway Error code 502" | In Cloudflare Zero Trust -> Networks -> Tunnels -> Public Hostname: change Type to HTTPS (not HTTP), set URL to `localhost:6767`, and turn ON "No TLS Verify" under Additional Settings -> TLS. |
 | Microphone or camera will not turn on | Browsers require a secure connection to use microphones and cameras. Make sure the address starts with `https://` and that you accepted the browser certificate prompt. |
 | Where do I find the 6-digit registration code? | Look at the black terminal window on the computer running the server. If using Docker, run `sudo docker logs -f mellow`. |
 | "Node.js version" error when starting | Mellow requires Node.js version 22.5 or newer. Download the current LTS version from [nodejs.org](https://nodejs.org/) and run the launcher again. |
