@@ -7548,7 +7548,7 @@ function scheduleIceRecovery(userId) {
 function createPeerConnection(userId, username, initiator) {
   if (userId === currentUser.id) return null;
   if (voicePeerConnections[userId]) return voicePeerConnections[userId];
-  closePeerConnection(userId);
+  closePeerConnection(userId, { keepIceQueue: true });
 
   const pc = new RTCPeerConnection({
     iceServers: [
@@ -7699,7 +7699,8 @@ function handleVoiceIceCandidate(userId, candidate) {
   pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(e => console.warn('ICE error:', e));
 }
 
-function closePeerConnection(userId) {
+function closePeerConnection(userId, opts) {
+  const keepIceQueue = !!(opts && opts.keepIceQueue);
   const pc = voicePeerConnections[userId];
   if (pc) {
     if (pc._restartTimer) clearTimeout(pc._restartTimer);
@@ -7727,7 +7728,7 @@ function closePeerConnection(userId) {
     screenEl.srcObject = null;
     screenEl.remove();
   }
-  delete voiceIceCandidateQueues[userId];
+  if (!keepIceQueue) delete voiceIceCandidateQueues[userId];
   delete pendingVideoKinds[userId];
   delete remoteCameraStreams[userId];
   const el = document.getElementById(`vp-${userId}`);
