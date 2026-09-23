@@ -6631,6 +6631,7 @@ function leaveVoiceChannel(silent) {
   voicePeerConnections = {};
   voiceAudioElements = {};
   voiceIceCandidateQueues = {};
+  voiceAudioResumeBound = false;
   voiceRestartAttempts = {};
   remoteCameraStreams = {};
   pendingVideoKinds = {};
@@ -7489,6 +7490,7 @@ function bindVoiceAudioResume() {
       if (!anyPaused) {
         document.removeEventListener('pointerdown', handler, true);
         document.removeEventListener('keydown', handler, true);
+        voiceAudioResumeBound = false;
       }
     });
   };
