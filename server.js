@@ -90,6 +90,7 @@ const onlineUsers = new Map();
 const voiceParticipants = new Map();
 const screenSharers = new Map();
 const ReadState = require('./server/read-state.js');
+const GifEmbed = require('./server/gif-embed.js');
 let readState = ReadState.loadReadState();
 
 function getDefaultAvatar(identifier) {
@@ -1169,6 +1170,69 @@ app.get('/api/embed/video', async (req, res) => {
     if (!res.headersSent) {
       res.status(502).json({ error: 'Unable to proxy video' });
     }
+  }
+});
+
+/* ── Tenor/Giphy GIF resolution (oEmbed → direct media URL) ──────────── */
+const gifPreviewCache = new Map();
+
+function cacheGifPreview(key, result) {
+  if (gifPreviewCache.size > 500) {
+    gifPreviewCache.delete(gifPreviewCache.keys().next().value);
+  }
+  gifPreviewCache.set(key, result);
+}
+
+app.get('/api/embed/gif', async (req, res) => {
+  const targetUrl = (req.query.url || '').trim();
+  if (!targetUrl) return res.status(400).json({ error: 'url query param required' });
+  if (tooManyAttempts(`gif:${clientIp(req)}`, 120, 60 * 1000)) {
+    return res.status(429).json({ error: 'Too many GIF requests. Try again later.' });
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(targetUrl);
+  } catch (_) {
+    return res.status(400).json({ error: 'Invalid URL' });
+  }
+  if (parsed.protocol !== 'https:' || !GifEmbed.detectGifProvider(parsed.hostname)) {
+    return res.status(400).json({ error: 'Domain not supported for GIF preview' });
+  }
+
+  if (gifPreviewCache.has(targetUrl)) {
+    return res.json(gifPreviewCache.get(targetUrl));
+  }
+
+  // Direct CDN link: no oEmbed lookup needed
+  if (GifEmbed.isAllowedGifMediaHost(parsed.hostname)) {
+    const result = { image: targetUrl, title: '', width: null, height: null };
+    cacheGifPreview(targetUrl, result);
+    return res.json(result);
+  }
+
+  try {
+    const oembedUrl = GifEmbed.buildOembedUrl(targetUrl);
+    if (!oembedUrl) return res.status(400).json({ error: 'Unsupported GIF URL' });
+    const oembedRes = await fetch(oembedUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MellowGif/1.0)' },
+      signal: AbortSignal.timeout(5000)
+    });
+    if (!oembedRes.ok) return res.status(502).json({ error: 'Failed to resolve GIF' });
+    const data = await oembedRes.json();
+    const image = GifEmbed.extractMediaUrl(data);
+    if (!image) return res.status(502).json({ error: 'No GIF media found' });
+
+    const result = {
+      image,
+      title: typeof data.title === 'string' ? data.title.slice(0, 200) : '',
+      width: Number.isFinite(data.width) ? data.width : null,
+      height: Number.isFinite(data.height) ? data.height : null
+    };
+    cacheGifPreview(targetUrl, result);
+    res.json(result);
+  } catch (_) {
+    res.status(502).json({ error: 'Unable to resolve GIF' });
   }
 });
 
