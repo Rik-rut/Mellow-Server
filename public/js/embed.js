@@ -38,6 +38,16 @@
     return /^https:\/\/(?:www\.)?facebook\.com\/plugins\/(?:video|post)\.php\?href=https?%3A%2F%2F.*$/.test(url);
   }
 
+  function isDirectGifMediaUrl(url) {
+    try {
+      const host = new URL(url).hostname.toLowerCase();
+      return host === 'media.tenor.com'
+        || /^(?:media\d*|i)\.giphy\.com$/.test(host);
+    } catch (_) {
+      return false;
+    }
+  }
+
   function getProviderMeta(provider, mediaType) {
     switch (provider) {
       case 'youtube':
@@ -67,6 +77,20 @@
           iconClass: 'ph-facebook-logo',
           typeLabel: mediaType === 'reel' ? 'Reel' : (mediaType === 'post' ? 'Post' : 'Video'),
           themeClass: 'embed-facebook'
+        };
+      case 'tenor':
+        return {
+          name: 'Tenor',
+          iconClass: 'ph-gif',
+          typeLabel: 'GIF',
+          themeClass: 'embed-tenor'
+        };
+      case 'giphy':
+        return {
+          name: 'Giphy',
+          iconClass: 'ph-gif',
+          typeLabel: 'GIF',
+          themeClass: 'embed-giphy'
         };
       default:
         return {
@@ -337,6 +361,41 @@
           });
       }
 
+    } else if (provider === 'tenor' || provider === 'giphy') {
+      const gifWrap = document.createElement('div');
+      gifWrap.className = 'embed-gif';
+      const loading = document.createElement('div');
+      loading.className = 'embed-gif-placeholder';
+      loading.textContent = 'Loading GIF...';
+      gifWrap.appendChild(loading);
+      body.appendChild(gifWrap);
+
+      function showGif(src, title) {
+        gifWrap.innerHTML = '';
+        const img = document.createElement('img');
+        img.className = 'embed-gif-image';
+        img.loading = 'lazy';
+        img.alt = title || ((provider === 'tenor' ? 'Tenor' : 'Giphy') + ' GIF');
+        img.src = src;
+        img.onerror = function () {
+          gifWrap.innerHTML = '<div class="embed-gif-placeholder">GIF unavailable</div>';
+        };
+        gifWrap.appendChild(img);
+      }
+
+      if (isDirectGifMediaUrl(url)) {
+        showGif(url, '');
+      } else if (typeof fetch !== 'undefined') {
+        fetch('/api/embed/gif?url=' + encodeURIComponent(url))
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (data) {
+            if (data && data.image) showGif(data.image, data.title);
+            else gifWrap.innerHTML = '<div class="embed-gif-placeholder">GIF unavailable</div>';
+          })
+          .catch(function () {
+            gifWrap.innerHTML = '<div class="embed-gif-placeholder">GIF unavailable</div>';
+          });
+      }
     } else if (provider === 'facebook') {
       const embedUrl = buildFacebookUrl(url, mediaType);
       const iframe = document.createElement('iframe');

@@ -1715,6 +1715,12 @@ body {
 .embed-card.embed-facebook {
   border-left-color: #1877f2;
 }
+.embed-card.embed-tenor {
+  border-left-color: #ff6b35;
+}
+.embed-card.embed-giphy {
+  border-left-color: #00cc7a;
+}
 
 /* Card Header */
 .embed-card-header {
@@ -1755,6 +1761,12 @@ body {
 }
 .embed-facebook .embed-card-badge i {
   color: #1877f2;
+}
+.embed-tenor .embed-card-badge i {
+  color: #ff6b35;
+}
+.embed-giphy .embed-card-badge i {
+  color: #00cc7a;
 }
 
 .embed-type-chip {
@@ -2057,6 +2069,28 @@ body {
   .embed-ig-media-wrap {
     max-height: 380px;
   }
+}
+
+/* GIF embeds (Tenor / Giphy) */
+.embed-gif {
+  display: block;
+  line-height: 0;
+  background: rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+.embed-gif-image {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  max-height: 400px;
+  width: auto;
+  height: auto;
+}
+.embed-gif-placeholder {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 
 .message-text .mention {
