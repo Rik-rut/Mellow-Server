@@ -7539,12 +7539,26 @@ const MAX_ICE_RESTARTS = 2;
 function scheduleIceRecovery(userId) {
   const key = String(userId);
   const attempts = voiceRestartAttempts[key] || 0;
+  const pc = voicePeerConnections[userId];
+  if (!pc) return;
+
   if (attempts >= MAX_ICE_RESTARTS) {
-    vlog('giving up on', userId, 'after', attempts, 'restarts');
+    vlog('rebuilding peer connection for', userId, 'after', attempts, 'restarts');
+    const info = voiceParticipantsByChannel[voiceChannelId]
+      ? voiceParticipantsByChannel[voiceChannelId].find(p => p.userId === userId)
+      : null;
+    const name = (info && info.username) || pc._username || 'peer';
+    closePeerConnection(userId);
+    voiceRestartAttempts[key] = 0;
+    createPeerConnection(userId, name, currentUser.id < userId);
     return;
   }
+
   voiceRestartAttempts[key] = attempts + 1;
   vlog('ice restart attempt', attempts + 1, 'for', userId);
+  if (typeof pc.restartIce === 'function') {
+    try { pc.restartIce(); } catch (_) {}
+  }
   renegotiatePeerConnection(userId);
 }
 
@@ -7562,6 +7576,7 @@ function createPeerConnection(userId, username, initiator) {
   });
 
   voicePeerConnections[userId] = pc;
+  pc._username = username;
   pc.polite = currentUser.id.localeCompare(String(userId)) < 0;
   pc.makingOffer = false;
   pc.ignoreOffer = false;
