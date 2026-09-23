@@ -7184,7 +7184,10 @@ function applyScreenFocus() {
 function renegotiatePeerConnection(userId) {
   const pc = voicePeerConnections[userId];
   if (!pc || !voiceChannelId) return;
-  if (pc.signalingState !== 'stable') return;
+  if (pc.signalingState !== 'stable') {
+    pc._pendingRenegotiate = true;
+    return;
+  }
   pc.makingOffer = true;
   pc.createOffer().then(offer => {
     const mungedSdp = mungeSdpForHighFramerateVideo(offer.sdp);
@@ -7667,6 +7670,10 @@ async function handleVoiceOffer(userId, sdp) {
         sdp: pc.localDescription
       });
     }
+    if (pc._pendingRenegotiate) {
+      pc._pendingRenegotiate = false;
+      renegotiatePeerConnection(userId);
+    }
   } catch (e) {
     console.error('Answer error:', e);
   }
@@ -7681,6 +7688,10 @@ function handleVoiceAnswer(userId, sdp) {
     flushIceCandidateQueue(userId, pc);
     if (pc.screenVideoSender) {
       applyHighFpsEncodingParameters(pc.screenVideoSender);
+    }
+    if (pc._pendingRenegotiate) {
+      pc._pendingRenegotiate = false;
+      renegotiatePeerConnection(userId);
     }
   }).catch(e => {
     pc.isSettingRemoteAnswerPending = false;
