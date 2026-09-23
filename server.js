@@ -1000,7 +1000,9 @@ async function getInstagramVideoUrl(targetUrl, bypassCache = false) {
 }
 
 app.get('/api/embed/preview', async (req, res) => {
-  const targetUrl = (req.query.url || '').trim();
+  const rawUrl = req.query.url;
+  if (typeof rawUrl !== 'string') return res.status(400).json({ error: 'Valid url query param required' });
+  const targetUrl = rawUrl.trim();
   if (!targetUrl || !/^https?:\/\//i.test(targetUrl)) {
     return res.status(400).json({ error: 'Valid url query param required' });
   }
@@ -1103,7 +1105,9 @@ app.get('/api/embed/preview', async (req, res) => {
 });
 
 app.get('/api/embed/video', async (req, res) => {
-  const targetUrl = (req.query.url || '').trim();
+  const rawUrl = req.query.url;
+  if (typeof rawUrl !== 'string') return res.status(400).json({ error: 'Valid url query param required' });
+  const targetUrl = rawUrl.trim();
   if (!targetUrl || !/^https?:\/\//i.test(targetUrl)) {
     return res.status(400).json({ error: 'Valid url query param required' });
   }
@@ -1184,7 +1188,9 @@ function cacheGifPreview(key, result) {
 }
 
 app.get('/api/embed/gif', async (req, res) => {
-  const targetUrl = (req.query.url || '').trim();
+  const rawUrl = req.query.url;
+  if (typeof rawUrl !== 'string') return res.status(400).json({ error: 'Valid url query param required' });
+  const targetUrl = rawUrl.trim();
   if (!targetUrl) return res.status(400).json({ error: 'url query param required' });
   if (tooManyAttempts(`gif:${clientIp(req)}`, 120, 60 * 1000)) {
     return res.status(429).json({ error: 'Too many GIF requests. Try again later.' });
@@ -1209,6 +1215,32 @@ app.get('/api/embed/gif', async (req, res) => {
     const result = { image: targetUrl, title: '', width: null, height: null };
     cacheGifPreview(targetUrl, result);
     return res.json(result);
+  }
+
+  // Tenor's oEmbed only returns a static thumbnail, so fetch the share page
+  // and use its og:image (the animated GIF) instead.
+  if (GifEmbed.detectGifProvider(parsed.hostname) === 'tenor') {
+    try {
+      const pageRes = await fetch(targetUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+        signal: AbortSignal.timeout(6000)
+      });
+      let pageHost = '';
+      try { pageHost = new URL(pageRes.url).hostname; } catch (_) {}
+      if (!GifEmbed.detectGifProvider(pageHost)) {
+        try { if (pageRes.body && pageRes.body.cancel) pageRes.body.cancel(); } catch (_) {}
+        return res.status(502).json({ error: 'GIF provider redirected to a disallowed host' });
+      }
+      if (!pageRes.ok) return res.status(502).json({ error: 'Failed to resolve GIF' });
+      const html = await pageRes.text();
+      const image = GifEmbed.extractTenorPageImage(html);
+      if (!image) return res.status(502).json({ error: 'No GIF media found' });
+      const result = { image, title: '', width: null, height: null };
+      cacheGifPreview(targetUrl, result);
+      return res.json(result);
+    } catch (_) {
+      return res.status(502).json({ error: 'Unable to resolve GIF' });
+    }
   }
 
   try {

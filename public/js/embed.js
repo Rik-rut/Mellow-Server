@@ -41,7 +41,7 @@
   function isDirectGifMediaUrl(url) {
     try {
       const host = new URL(url).hostname.toLowerCase();
-      return host === 'media.tenor.com'
+      return /^media\d*\.tenor\.com$/.test(host)
         || /^(?:media\d*|i)\.giphy\.com$/.test(host);
     } catch (_) {
       return false;

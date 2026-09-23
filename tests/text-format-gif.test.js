@@ -26,13 +26,15 @@ test('detects Giphy media links', () => {
 
 test('detects direct media CDN links', () => {
   assert.strictEqual(TextFormat.detectProvider('https://media.tenor.com/abc/tenor.gif').provider, 'tenor');
+  assert.strictEqual(TextFormat.detectProvider('https://media1.tenor.com/m/abc/foo.gif').provider, 'tenor');
   assert.strictEqual(TextFormat.detectProvider('https://media.giphy.com/media/abc/giphy.gif').provider, 'giphy');
   assert.strictEqual(TextFormat.detectProvider('https://i.giphy.com/abc.gif').provider, 'giphy');
 });
 
 test('does not misclassify unrelated URLs', () => {
   assert.strictEqual(TextFormat.detectProvider('https://example.com/view/x-1').provider, null);
-  assert.strictEqual(TextFormat.detectProvider('https://notgiphy.com/gifs/x').provider, null);
+  assert.strictEqual(TextFormat.detectProvider('https://notgiphy.com/gifs/cat-abc123XYZ').provider, null);
+  assert.strictEqual(TextFormat.detectProvider('https://evil.com/giphy.com/gifs/cat-abc123XYZ').provider, null);
 });
 
 test('tokenizeMessage tags Giphy link', () => {

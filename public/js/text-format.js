@@ -74,24 +74,24 @@
     }
 
     // Tenor
-    if ((m = /(?:www\.)?tenor\.com\/(?:[a-z]{2}(?:-[A-Z]{2})?\/)?view\/[^/?#]*-(\d{5,30})/i.exec(url))) {
+    if ((m = /^https?:\/\/(?:www\.)?tenor\.com\/(?:[a-z]{2}(?:-[A-Z]{2})?\/)?view\/[^/?#]*-(\d{5,30})/i.exec(url))) {
       return { provider: 'tenor', videoId: m[1], mediaType: 'gif' };
     }
-    if ((m = /(?:www\.)?tenor\.com\/(\d{5,30})\.gif/i.exec(url))) {
+    if ((m = /^https?:\/\/(?:www\.)?tenor\.com\/(\d{5,30})\.gif/i.exec(url))) {
       return { provider: 'tenor', videoId: m[1], mediaType: 'gif' };
     }
-    if (/media\.tenor\.com\//i.test(url)) {
+    if (/^https?:\/\/media\d*\.tenor\.com\//i.test(url)) {
       return { provider: 'tenor', videoId: null, mediaType: 'gif' };
     }
 
     // Giphy
-    if ((m = /(?:www\.)?giphy\.com\/gifs\/(?:[^/?#]*?-)?([A-Za-z0-9]{5,40})(?:[/?#]|$)/.exec(url))) {
+    if ((m = /^https?:\/\/(?:www\.)?giphy\.com\/gifs\/(?:[^/?#]*?-)?([A-Za-z0-9]{5,40})(?:[/?#]|$)/.exec(url))) {
       return { provider: 'giphy', videoId: m[1], mediaType: 'gif' };
     }
-    if ((m = /(?:www\.)?giphy\.com\/media\/([A-Za-z0-9]{5,40})/.exec(url))) {
+    if ((m = /^https?:\/\/(?:www\.)?giphy\.com\/media\/([A-Za-z0-9]{5,40})/.exec(url))) {
       return { provider: 'giphy', videoId: m[1], mediaType: 'gif' };
     }
-    if (/(?:media\d*|i)\.giphy\.com\//i.test(url)) {
+    if (/^https?:\/\/(?:media\d*|i)\.giphy\.com\//i.test(url)) {
       return { provider: 'giphy', videoId: null, mediaType: 'gif' };
     }
 

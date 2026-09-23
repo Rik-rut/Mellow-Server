@@ -2,7 +2,7 @@
 
 const TENOR_PAGE_DOMAINS = ['tenor.com'];
 const GIPHY_PAGE_DOMAINS = ['giphy.com'];
-const TENOR_MEDIA_DOMAINS = ['media.tenor.com'];
+const TENOR_MEDIA_RE = /^media\d*\.tenor\.com$/;
 const GIPHY_MEDIA_RE = /^(?:media\d*|i)\.giphy\.com$/;
 
 function hostMatches(host, domains) {
@@ -17,11 +17,12 @@ function detectGifProvider(host) {
 }
 
 // Media URLs must live on a provider media subdomain, never the bare page
-// domain (a bare giphy.com/tenor.com URL is a web page, not an image). Giphy
-// media is served from `media*.giphy.com` and `i.giphy.com` only.
+// domain (a bare giphy.com/tenor.com URL is a web page, not an image). Tenor
+// media is served from `media*.tenor.com`; Giphy media from
+// `media*.giphy.com` and `i.giphy.com` only.
 function isAllowedGifMediaHost(host) {
   const h = String(host || '').toLowerCase();
-  if (hostMatches(h, TENOR_MEDIA_DOMAINS)) return true;
+  if (TENOR_MEDIA_RE.test(h)) return true;
   return GIPHY_MEDIA_RE.test(h);
 }
 
@@ -54,4 +55,21 @@ function extractMediaUrl(oembed) {
   return null;
 }
 
-module.exports = { detectGifProvider, isAllowedGifMediaHost, buildOembedUrl, extractMediaUrl };
+// Tenor's oEmbed payload exposes only a static thumbnail; the animated GIF
+// lives on the share page's og:image / twitter:image meta tag.
+function extractTenorPageImage(html) {
+  if (typeof html !== 'string') return null;
+  const m = html.match(/<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)["'][^>]+content=["']([^"']+)["']/i)
+    || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image|twitter:image)["']/i);
+  if (!m) return null;
+  const candidate = m[1].replace(/&amp;/g, '&');
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.protocol !== 'https:' || !isAllowedGifMediaHost(parsed.hostname)) return null;
+    return parsed.toString();
+  } catch (_) {
+    return null;
+  }
+}
+
+module.exports = { detectGifProvider, isAllowedGifMediaHost, buildOembedUrl, extractMediaUrl, extractTenorPageImage };

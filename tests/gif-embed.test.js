@@ -47,3 +47,26 @@ test('extractMediaUrl returns only allowed https media URLs', () => {
   assert.strictEqual(Gif.extractMediaUrl({ url: 'http://media.giphy.com/x.gif' }), null);
   assert.strictEqual(Gif.extractMediaUrl(null), null);
 });
+
+test('isAllowedGifMediaHost admits Tenor media subdomains only', () => {
+  assert.strictEqual(Gif.isAllowedGifMediaHost('media.tenor.com'), true);
+  assert.strictEqual(Gif.isAllowedGifMediaHost('media1.tenor.com'), true);
+  assert.strictEqual(Gif.isAllowedGifMediaHost('c.tenor.com'), false);
+  assert.strictEqual(Gif.isAllowedGifMediaHost('tenor.com'), false);
+});
+
+test('extractTenorPageImage returns the animated og:image on an allowed host', () => {
+  const html = '<meta class="dynamic" property="og:image" content="https://media1.tenor.com/m/abc-dEF/thanos-infinity-war.gif">';
+  assert.strictEqual(Gif.extractTenorPageImage(html), 'https://media1.tenor.com/m/abc-dEF/thanos-infinity-war.gif');
+});
+
+test('extractTenorPageImage handles twitter:image and content-before-property order', () => {
+  const html = '<meta content="https://media.tenor.com/xyz/foo.gif" name="twitter:image">';
+  assert.strictEqual(Gif.extractTenorPageImage(html), 'https://media.tenor.com/xyz/foo.gif');
+});
+
+test('extractTenorPageImage rejects disallowed hosts and missing meta', () => {
+  assert.strictEqual(Gif.extractTenorPageImage('<meta property="og:image" content="https://evil.com/x.gif">'), null);
+  assert.strictEqual(Gif.extractTenorPageImage('<html>no meta</html>'), null);
+  assert.strictEqual(Gif.extractTenorPageImage(null), null);
+});
