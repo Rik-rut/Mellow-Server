@@ -7451,6 +7451,7 @@ function attachRemoteAudio(userId, stream) {
   // Try to play, but don't block if it fails
   audio.play().catch(err => {
     console.log('Remote audio autoplay blocked, click participant to enable:', userId);
+    bindVoiceAudioResume();
     // Show visual indicator on the participant
     const el = document.getElementById(`vp-${userId}`);
     if (el) {
@@ -7466,6 +7467,33 @@ function attachRemoteAudio(userId, stream) {
   audio.addEventListener('canplaythrough', () => {
     audio.play().catch(() => { });
   });
+}
+
+let voiceAudioResumeBound = false;
+
+function resumeVoiceAudio() {
+  const attempts = Object.keys(voiceAudioElements).map(userId => {
+    const audio = voiceAudioElements[userId];
+    if (!audio || audio.paused === false) return Promise.resolve();
+    return audio.play().catch(() => {});
+  });
+  return Promise.all(attempts);
+}
+
+function bindVoiceAudioResume() {
+  if (voiceAudioResumeBound) return;
+  voiceAudioResumeBound = true;
+  const handler = () => {
+    resumeVoiceAudio().then(() => {
+      const anyPaused = Object.values(voiceAudioElements).some(a => a && a.paused);
+      if (!anyPaused) {
+        document.removeEventListener('pointerdown', handler, true);
+        document.removeEventListener('keydown', handler, true);
+      }
+    });
+  };
+  document.addEventListener('pointerdown', handler, true);
+  document.addEventListener('keydown', handler, true);
 }
 
 function attachRemoteScreenAudio(userId, stream) {
