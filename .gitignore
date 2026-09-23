@@ -6,5 +6,5 @@ node_modules/
 screenshots/*
 graphify-out/
 docs/
-
+tests/
 !README.md
