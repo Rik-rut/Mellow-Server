@@ -5,6 +5,6 @@ skills-lock.json
 node_modules/
 screenshots/*
 graphify-out/
-docs/superpowers/
+docs/
 
 !README.md
