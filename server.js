@@ -1218,6 +1218,12 @@ app.get('/api/embed/gif', async (req, res) => {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MellowGif/1.0)' },
       signal: AbortSignal.timeout(5000)
     });
+    let finalHost = '';
+    try { finalHost = new URL(oembedRes.url).hostname; } catch (_) {}
+    if (!GifEmbed.detectGifProvider(finalHost)) {
+      try { if (oembedRes.body && oembedRes.body.cancel) oembedRes.body.cancel(); } catch (_) {}
+      return res.status(502).json({ error: 'GIF provider redirected to a disallowed host' });
+    }
     if (!oembedRes.ok) return res.status(502).json({ error: 'Failed to resolve GIF' });
     const data = await oembedRes.json();
     const image = GifEmbed.extractMediaUrl(data);
