@@ -328,7 +328,7 @@
           <div id="file-chips" class="file-chips"></div>
           <button id="emoji-btn" title="Emoji"><i class="ph ph-smiley"></i></button>
           <div id="emoji-picker-container" style="display:none">
-            <emoji-picker></emoji-picker>
+            <emoji-picker data-source="/js/lib/emoji-picker-element-data/en/emojibase/data.json"></emoji-picker>
           </div>
           <textarea id="message-input" placeholder="Type a message..." rows="1" maxlength="4000"></textarea>
       <div id="mention-dropdown" style="display:none"></div>
@@ -727,7 +727,7 @@
       <button class="quick-reaction-btn" data-emoji="😢">😢</button>
       <button class="quick-reaction-btn" data-emoji="🔥">🔥</button>
     </div>
-    <emoji-picker id="reaction-emoji-picker"></emoji-picker>
+    <emoji-picker id="reaction-emoji-picker" data-source="/js/lib/emoji-picker-element-data/en/emojibase/data.json"></emoji-picker>
   </div>
 
   <div id="context-menu" style="display:none">
